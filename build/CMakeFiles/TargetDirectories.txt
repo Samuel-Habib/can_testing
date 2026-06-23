@@ -1,0 +1,7 @@
+/Volumes/ExternalSSD/dev_work/ru-tel/build/CMakeFiles/ru-tel.dir
+/Volumes/ExternalSSD/dev_work/ru-tel/build/CMakeFiles/edit_cache.dir
+/Volumes/ExternalSSD/dev_work/ru-tel/build/CMakeFiles/rebuild_cache.dir
+/Volumes/ExternalSSD/dev_work/ru-tel/build/cmake/stm32cubemx/CMakeFiles/STM32_Drivers.dir
+/Volumes/ExternalSSD/dev_work/ru-tel/build/cmake/stm32cubemx/CMakeFiles/FreeRTOS.dir
+/Volumes/ExternalSSD/dev_work/ru-tel/build/cmake/stm32cubemx/CMakeFiles/edit_cache.dir
+/Volumes/ExternalSSD/dev_work/ru-tel/build/cmake/stm32cubemx/CMakeFiles/rebuild_cache.dir
