@@ -3,6 +3,7 @@
  */
 
 #include "can.h"
+#include "stm32h7xx_hal_fdcan.h"
 
 int can_tx(FDCAN_HandleTypeDef hfdcan1) {
   // start
@@ -23,11 +24,10 @@ int can_tx(FDCAN_HandleTypeDef hfdcan1) {
 }
 
 // is there a way to do this without needing the locatin?
-// do i need to stop can?
 int can_rx(FDCAN_HandleTypeDef hfdcan1, uint32_t rx_location) {
   // start
   FDCAN_RxHeaderTypeDef pRxHeader;
-  uint8_t Data;
+  //  uint8_t Data;
   uint32_t BufferIndex;
   // add message
   //  HAL_FDCAN_GetRxMessage(, rx_location, &pRxHeader, &Data);
@@ -35,22 +35,38 @@ int can_rx(FDCAN_HandleTypeDef hfdcan1, uint32_t rx_location) {
 
   //[Q<<] is enabletxbufferrequest nesseary?
   HAL_FDCAN_EnableTxBufferRequest(&hfdcan1, BufferIndex);
+  return 0;
 }
 
 // polling
 
-int can_poll(FDCAN_HandleTypeDef hfdcan1, uint8_t DataBuffer) {
+uint8_t *can_poll_tx(FDCAN_HandleTypeDef hfdcan1, uint8_t *DataBuffer,
+                     uint8_t *extra) {
   // how do i set these?
   FDCAN_TxHeaderTypeDef pTxHeader;
   pTxHeader.IdType = FDCAN_STANDARD_ID;
-  pTxHeader.TxFrameType =
-      FDCAN_DATA_FRAME; // what is this? why does it go up to 64B?
+  pTxHeader.TxFrameType = FDCAN_DATA_FRAME;
   pTxHeader.DataLength = FDCAN_DLC_BYTES_8;
   pTxHeader.ErrorStateIndicator = FDCAN_ESI_ACTIVE;
   pTxHeader.Identifier = NODE_A_ID;
   pTxHeader.BitRateSwitch = FDCAN_BRS_ON;
   pTxHeader.FDFormat = FDCAN_FD_CAN;
   pTxHeader.TxEventFifoControl = FDCAN_NO_TX_EVENTS;
+
+  uint8_t dataBuffer;
+  uint32_t BufferIndex;
+
+  HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &pTxHeader, DataBuffer);
+
+  // if (HAL_FDCAN_IsRxBufferMessageAvailable(&hfdcan1, BufferIndex)) {
+  //   // so i can check if a message is available but how do i actually read
+  //   that
+  //   // message without knowing it's location?
+  // }
+  return extra;
+}
+
+int can_poll_rx(FDCAN_HandleTypeDef hfdcan1, uint8_t DataBuffer) {
 
   FDCAN_RxHeaderTypeDef pRxHeader;
   pRxHeader.Identifier = NODE_A_ID;
@@ -62,20 +78,9 @@ int can_poll(FDCAN_HandleTypeDef hfdcan1, uint8_t DataBuffer) {
   pRxHeader.FDFormat = FDCAN_FD_CAN;
   //  pRxHeader.FilterIndex what is the Rx acceptance filter element?
 
-  uint8_t dataBuffer;
-  uint32_t BufferIndex;
-
-  HAL_FDCAN_AddMessageToTxFifoQ(&hfdcan1, &pTxHeader, &DataBuffer);
-
   if (HAL_FDCAN_GetRxFifoFillLevel(&hfdcan1, FDCAN_RX_FIFO0)) {
     HAL_FDCAN_GetRxMessage(&hfdcan1, FDCAN_RX_FIFO0, &pRxHeader, &DataBuffer);
   }
-
-  // if (HAL_FDCAN_IsRxBufferMessageAvailable(&hfdcan1, BufferIndex)) {
-  //   // so i can check if a message is available but how do i actually read
-  //   that
-  //   // message without knowing it's location?
-  // }
 }
 
 // interrupt

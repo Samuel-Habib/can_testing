@@ -1,0 +1,46 @@
+Clear
+logFile @/root/dev/ru-solar/can_testing/renode.log
+
+# ============================ GLOBAL SETUP ============================
+emulation CreateUartPtyTerminal "term" "/tmp/uart" true
+emulation CreateCANHub "canHub"
+
+# ============================ MACHINE 0 SETUP ============================
+mach create "machine-0"
+machine LoadPlatformDescription @platforms/cpus/stm32h753.repl
+
+# Set context and connect peripherals directly
+mach set "machine-0"
+connector Connect sysbus.usart1 term
+connector Connect sysbus.fdcan1 canHub
+connector Connect sysbus.socket_can canHub
+
+macro reset
+"""
+    sysbus LoadELF @/root/dev/ru-solar/can_testing/build/ru-tel.elf
+    cpu VectorTableOffset 0x08000000
+    cpu SP 0x20020000
+"""
+
+# ============================ MACHINE 1 SETUP ============================
+mach create "machine-1"
+machine LoadPlatformDescription @platforms/cpus/stm32h753.repl
+
+mach set "machine-1"
+connector Connect sysbus.fdcan1 canHub
+
+macro reset
+"""
+    sysbus LoadELF @/root/dev/ru-solar/can_testing/build/ru-tel.elf
+    cpu VectorTableOffset 0x08000000
+    cpu SP 0x20020000
+"""
+
+# ============================ EXECUTION ============================
+mach set "machine-0"
+runMacro $reset
+mach set "machine-1"
+runMacro $reset
+
+mach set "machine-0"
+machine StartGdbServer 3333

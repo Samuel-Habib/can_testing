@@ -1,8 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"/Volumes/ExternalSSD/dev_work/ru-tel/build/cmake_install.cmake",
-		"/Volumes/ExternalSSD/dev_work/ru-tel/build/cmake/stm32cubemx/cmake_install.cmake"
-	],
-	"Parallel" : false
-}

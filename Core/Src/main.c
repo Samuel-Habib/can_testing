@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
+#include "stm32h7xx_hal_fdcan.h"
 #include "stm32h7xx_hal_uart.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -99,6 +100,20 @@ int main(void) {
   HAL_Init();
 
   /* USER CODE BEGIN Init */
+
+  const FDCAN_FilterTypeDef Can_ConfigFilter = {
+      .IdType = FDCAN_STANDARD_ID,
+      .FilterIndex = 0,
+      .FilterType = FDCAN_FILTER_MASK,
+      .FilterConfig = FDCAN_FILTER_TO_RXFIFO0,
+      .FilterID1 = 0,
+      .FilterID2 = 0x7FF
+      //  .RxBufferIndex = ; not used
+      //  .IsCalibrationMsg = ; not used
+
+  };
+
+  HAL_FDCAN_ConfigFilter(&hfdcan1, &Can_ConfigFilter);
 
   /* USER CODE END Init */
 
@@ -365,6 +380,7 @@ void StartDefaultTask(void *argument) {
   /* USER CODE BEGIN 5 */
 
   static const uint8_t data_bufer[] = "hello \n \r";
+  static uint8_t *extra;
   // 11111
   /* Infinite loop */
   for (;;) {
@@ -374,7 +390,7 @@ void StartDefaultTask(void *argument) {
 
     osDelay(1);
 
-    can_poll(hfdcan1);
+    can_poll(hfdcan1, 11, extra);
 
     osDelay(200);
     // HAL_UART_Transmit_IT(&huart1, data_bufer, sizeof(msg));
@@ -384,7 +400,7 @@ void StartDefaultTask(void *argument) {
     //      whats the differnce between using dma for uart and an interrupt
     //   HAL_UART_Transmit_IT(UART_HandleTypeDef *huart, const uint8_t *pData,
     //   uint16_t Size)
-    HAL_UART_Transmit(&huart1, data_bufer, sizeof(data_bufer), 1000);
+    // HAL_UART_Transmit(&huart1, extra, sizeof(data_bufer), 1000);
     osDelay(200);
   }
   /* USER CODE END 5 */

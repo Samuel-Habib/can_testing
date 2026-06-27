@@ -1,0 +1,4 @@
+16:44:45.3750 [INFO] Loaded monitor commands from: /root/renode_portable/scripts/monitor.py
+16:44:45.3902 [INFO] Monitor available in telnet mode on port 1234
+16:44:45.4272 [INFO] Including script(s): /root/dev/ru-solar/can_testing/setup.resc
+16:44:45.7071 [INFO] System bus created.
