@@ -63,3 +63,6 @@ Thumbs.db
 # Python
 __pycache__/
 *.pyc
+
+# misc
+./project_notes/

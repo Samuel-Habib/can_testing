@@ -1,0 +1,212 @@
+17:14:11.1356 [INFO] System bus created.
+17:14:12.9968 [INFO] System bus created.
+17:14:13.4200 [INFO] machine-0/sysbus: Loading block of 46208 bytes length at 0x8000000.
+17:14:13.4239 [INFO] machine-0/sysbus: Loading block of 19372 bytes length at 0x800B480.
+17:14:13.4241 [INFO] machine-0/sysbus: Loading block of 1540 bytes length at 0x800B494.
+17:14:14.1295 [INFO] machine-1/sysbus: Loading block of 46208 bytes length at 0x8000000.
+17:14:14.1296 [INFO] machine-1/sysbus: Loading block of 19372 bytes length at 0x800B480.
+17:14:14.1297 [INFO] machine-1/sysbus: Loading block of 1540 bytes length at 0x800B494.
+17:14:14.1713 [INFO] machine-0: CPUs: ["machine-0.cpu"] were added to a new GDB server created on port :3333
+17:14:14.1713 [INFO] machine-0: GDB server with all CPUs started on port :3333
+17:14:26.4439 [INFO] machine-0/cpu: Setting initial values: PC = 0x8001175, SP = 0x20020000.
+17:14:26.4600 [INFO] machine-0: Machine started.
+17:14:26.4609 [INFO] machine-1/cpu: Setting initial values: PC = 0x8001175, SP = 0x20020000.
+17:14:26.4704 [INFO] machine-1: Machine started.
+17:14:26.6136 [WARNING] machine-0/rcc: Unhandled write to offset 0x18, value 0x0.
+17:14:26.6136 [WARNING] machine-0/rcc: Unhandled write to offset 0x1C, value 0x0.
+17:14:26.6137 [WARNING] machine-0/rcc: Unhandled write to offset 0x20, value 0x0.
+17:14:26.6137 [WARNING] machine-1/rcc: Unhandled write to offset 0x18, value 0x0.
+17:14:26.6137 [WARNING] machine-0/rcc: Unhandled write to offset 0x30, value 0x1010280.
+17:14:26.6137 [WARNING] machine-1/rcc: Unhandled write to offset 0x1C, value 0x0.
+17:14:26.6138 [WARNING] machine-0/rcc: Unhandled write to offset 0x38, value 0x1010280.
+17:14:26.6138 [WARNING] machine-1/rcc: Unhandled write to offset 0x20, value 0x0.
+17:14:26.6138 [WARNING] machine-0/rcc: Unhandled write to offset 0x40, value 0x1010280.
+17:14:26.6139 [WARNING] machine-1/rcc: Unhandled write to offset 0x30, value 0x1010280.
+17:14:26.6139 [WARNING] machine-1/rcc: Unhandled write to offset 0x38, value 0x1010280.
+17:14:26.6139 [WARNING] machine-0/rcc: Unhandled write to offset 0x60, value 0x0.
+17:14:26.6139 [WARNING] machine-1/rcc: Unhandled write to offset 0x40, value 0x1010280.
+17:14:26.6140 [WARNING] machine-1/rcc: Unhandled write to offset 0x60, value 0x0.
+17:14:26.6156 [WARNING] machine-0/sysbus: [cpu: 0x8001300] ReadDoubleWord from non existing peripheral at 0x5C001000.
+17:14:26.6156 [WARNING] machine-1/sysbus: [cpu: 0x8001300] ReadDoubleWord from non existing peripheral at 0x5C001000.
+17:14:26.6165 [WARNING] machine-0/sysbus: [cpu: 0x8001310] (tag: 'GPV_matrix_(AXIM)') WriteDoubleWord to non existing peripheral at 0x51008108, value 0x1.
+17:14:26.6166 [WARNING] machine-1/sysbus: [cpu: 0x8001310] (tag: 'GPV_matrix_(AXIM)') WriteDoubleWord to non existing peripheral at 0x51008108, value 0x1.
+17:14:26.6167 [WARNING] machine-0/rcc: Unhandled read from offset 0xD4.
+17:14:26.6172 [WARNING] machine-0/rcc: Unhandled read from offset 0xD4.
+17:14:26.6177 [WARNING] machine-0/rcc: Unhandled write to offset 0xD4, value 0x1000.
+17:14:26.6178 [WARNING] machine-1/rcc: Unhandled read from offset 0xD4.
+17:14:26.6178 [WARNING] machine-1/rcc: Unhandled read from offset 0xD4.
+17:14:26.6179 [WARNING] machine-1/rcc: Unhandled write to offset 0xD4, value 0x1000.
+17:14:26.6293 [WARNING] machine-0/rcc: Unhandled read from offset 0xD4.
+17:14:26.6293 [WARNING] machine-1/rcc: Unhandled read from offset 0xD4.
+17:14:26.6294 [WARNING] machine-0/rcc: Unhandled write to offset 0xD4, value 0x0.
+17:14:26.6294 [WARNING] machine-1/rcc: Unhandled write to offset 0xD4, value 0x0.
+17:14:26.6391 [WARNING] machine-1/nvic: Changing value of the SHCSR register to 0x10000, but only bits [16:18] are supported
+17:14:26.6392 [WARNING] machine-0/nvic: Changing value of the SHCSR register to 0x10000, but only bits [16:18] are supported
+17:14:26.6392 [WARNING] machine-0/rcc: Unhandled read from offset 0x18.
+17:14:26.6393 [WARNING] machine-1/rcc: Unhandled read from offset 0x18.
+17:14:26.6399 [WARNING] machine-0/rcc: Unhandled read from offset 0x18.
+17:14:26.6400 [WARNING] machine-1/rcc: Unhandled read from offset 0x18.
+17:14:26.6429 [WARNING] machine-1/rcc: Unhandled read from offset 0xF0.
+17:14:26.6429 [WARNING] machine-0/rcc: Unhandled read from offset 0xF0.
+17:14:26.6430 [WARNING] machine-0/rcc: Unhandled write to offset 0xF0, value 0x1.
+17:14:26.6430 [WARNING] machine-1/rcc: Unhandled write to offset 0xF0, value 0x1.
+17:14:26.6431 [WARNING] machine-0/rcc: Unhandled read from offset 0xF0.
+17:14:26.6431 [WARNING] machine-1/rcc: Unhandled read from offset 0xF0.
+17:14:26.6432 [WARNING] machine-1/rcc: Unhandled read from offset 0x18.
+17:14:26.6432 [WARNING] machine-0/rcc: Unhandled read from offset 0x18.
+17:14:26.6433 [WARNING] machine-0/rcc: Unhandled read from offset 0x18.
+17:14:26.6434 [WARNING] machine-1/rcc: Unhandled read from offset 0x18.
+17:14:26.6435 [WARNING] machine-0/rcc: Unhandled read from offset 0x18.
+17:14:26.6436 [WARNING] machine-1/rcc: Unhandled read from offset 0x18.
+17:14:26.6436 [WARNING] machine-0/rcc: Unhandled read from offset 0x1C.
+17:14:26.6438 [WARNING] machine-1/rcc: Unhandled read from offset 0x1C.
+17:14:26.6438 [WARNING] machine-0/rcc: Unhandled read from offset 0x1C.
+17:14:26.6441 [WARNING] machine-1/rcc: Unhandled read from offset 0x1C.
+17:14:26.6442 [WARNING] machine-1/rcc: Unhandled read from offset 0x20.
+17:14:26.6443 [WARNING] machine-0/rcc: Unhandled read from offset 0x20.
+17:14:26.6447 [WARNING] machine-0/rcc: Unhandled read from offset 0x18.
+17:14:26.6448 [WARNING] machine-1/rcc: Unhandled read from offset 0x18.
+17:14:26.6448 [WARNING] machine-1/rcc: Unhandled read from offset 0x18.
+17:14:26.6453 [WARNING] machine-0/rcc: Unhandled read from offset 0x18.
+17:14:26.6453 [WARNING] machine-0/rcc: Unhandled read from offset 0x1C.
+17:14:26.6454 [WARNING] machine-1/rcc: Unhandled read from offset 0x1C.
+17:14:26.6589 [WARNING] machine-0/rcc: Unhandled read from offset 0xF4.
+17:14:26.6591 [WARNING] machine-1/rcc: Unhandled read from offset 0xF4.
+17:14:26.6597 [WARNING] machine-0/rcc: Unhandled write to offset 0xF4, value 0x2.
+17:14:26.6598 [WARNING] machine-1/rcc: Unhandled write to offset 0xF4, value 0x2.
+17:14:26.6599 [WARNING] machine-1/rcc: Unhandled read from offset 0xF4.
+17:14:26.6599 [WARNING] machine-0/rcc: Unhandled read from offset 0xF4.
+17:14:26.6599 [WARNING] machine-1/syscfg: Unhandled read from offset 0x2C.
+17:14:26.6600 [WARNING] machine-0/syscfg: Unhandled read from offset 0x2C.
+17:14:26.6608 [WARNING] machine-1/syscfg: Unhandled write to offset 0x2C, value 0x0.
+17:14:26.6608 [WARNING] machine-0/syscfg: Unhandled write to offset 0x2C, value 0x0.
+17:14:26.6609 [WARNING] machine-0/syscfg: Unhandled read from offset 0x2C.
+17:14:26.6609 [WARNING] machine-1/syscfg: Unhandled read from offset 0x2C.
+17:14:26.6609 [WARNING] machine-1/sysbus: [cpu: 0x800737E] ReadDoubleWord from non existing peripheral at 0x5C001000.
+17:14:26.6610 [WARNING] machine-0/sysbus: [cpu: 0x800737E] ReadDoubleWord from non existing peripheral at 0x5C001000.
+17:14:26.6610 [WARNING] machine-1/rcc: Unhandled read from offset 0x4.
+17:14:26.6610 [WARNING] machine-0/rcc: Unhandled read from offset 0x4.
+17:14:26.6616 [WARNING] machine-1/rcc: Unhandled write to offset 0x4, value 0x20000.
+17:14:26.6616 [WARNING] machine-0/rcc: Unhandled write to offset 0x4, value 0x20000.
+17:14:26.6617 [WARNING] machine-0/rcc: Unhandled write to offset 0x30, value 0x104020E.
+17:14:26.6617 [WARNING] machine-1/rcc: Unhandled write to offset 0x30, value 0x104020E.
+17:14:26.6643 [WARNING] machine-0/rcc: Unhandled read from offset 0x18.
+17:14:26.6643 [WARNING] machine-1/rcc: Unhandled read from offset 0x18.
+17:14:26.6644 [WARNING] machine-0/rcc: Unhandled read from offset 0x1C.
+17:14:26.6644 [WARNING] machine-1/rcc: Unhandled read from offset 0x1C.
+17:14:26.6644 [WARNING] machine-1/rcc: Unhandled read from offset 0x1C.
+17:14:26.6645 [WARNING] machine-0/rcc: Unhandled read from offset 0x1C.
+17:14:26.6646 [WARNING] machine-1/rcc: Unhandled read from offset 0x1C.
+17:14:26.6646 [WARNING] machine-0/rcc: Unhandled read from offset 0x1C.
+17:14:26.6647 [WARNING] machine-0/rcc: Unhandled write to offset 0x1C, value 0x500.
+17:14:26.6650 [WARNING] machine-1/rcc: Unhandled write to offset 0x1C, value 0x500.
+17:14:26.6651 [WARNING] machine-0/rcc: Unhandled read from offset 0x20.
+17:14:26.6651 [WARNING] machine-1/rcc: Unhandled read from offset 0x20.
+17:14:26.6652 [WARNING] machine-1/rcc: Unhandled read from offset 0x18.
+17:14:26.6652 [WARNING] machine-0/rcc: Unhandled read from offset 0x18.
+17:14:26.6653 [WARNING] machine-1/rcc: Unhandled read from offset 0x18.
+17:14:26.6658 [WARNING] machine-0/rcc: Unhandled read from offset 0x18.
+17:14:26.6658 [WARNING] machine-1/rcc: Unhandled write to offset 0x18, value 0x0.
+17:14:26.6658 [WARNING] machine-0/rcc: Unhandled write to offset 0x18, value 0x0.
+17:14:26.6659 [WARNING] machine-1/rcc: Unhandled read from offset 0x18.
+17:14:26.6659 [WARNING] machine-0/rcc: Unhandled read from offset 0x18.
+17:14:26.6665 [WARNING] machine-1/rcc: Unhandled read from offset 0x18.
+17:14:26.6665 [WARNING] machine-1/rcc: Unhandled read from offset 0x1C.
+17:14:26.6666 [WARNING] machine-0/rcc: Unhandled read from offset 0x18.
+17:14:26.6666 [WARNING] machine-1/rcc: Unhandled read from offset 0x1C.
+17:14:26.6667 [WARNING] machine-0/rcc: Unhandled read from offset 0x1C.
+17:14:26.6667 [WARNING] machine-1/rcc: Unhandled read from offset 0x20.
+17:14:26.6667 [WARNING] machine-0/rcc: Unhandled read from offset 0x1C.
+17:14:26.6673 [WARNING] machine-0/rcc: Unhandled read from offset 0x20.
+17:14:26.6673 [WARNING] machine-1/rcc: Unhandled read from offset 0x30.
+17:14:26.6674 [WARNING] machine-1/rcc: Unhandled read from offset 0x30.
+17:14:26.6674 [WARNING] machine-0/rcc: Unhandled read from offset 0x30.
+17:14:26.6674 [WARNING] machine-1/rcc: Unhandled read from offset 0x18.
+17:14:26.6675 [WARNING] machine-0/rcc: Unhandled read from offset 0x30.
+17:14:26.6675 [WARNING] machine-1/rcc: Unhandled read from offset 0x18.
+17:14:26.6675 [WARNING] machine-0/rcc: Unhandled read from offset 0x18.
+17:14:26.6682 [WARNING] machine-0/rcc: Unhandled read from offset 0x18.
+17:14:26.6682 [WARNING] machine-1/rcc: Unhandled read from offset 0xF0.
+17:14:26.6683 [WARNING] machine-1/rcc: Unhandled write to offset 0xF0, value 0x1.
+17:14:26.6683 [WARNING] machine-1/rcc: Unhandled read from offset 0xF0.
+17:14:26.6683 [WARNING] machine-0/rcc: Unhandled read from offset 0xF0.
+17:14:26.6683 [WARNING] machine-0/rcc: Unhandled write to offset 0xF0, value 0x1.
+17:14:26.6687 [WARNING] machine-1/rcc: Unhandled read from offset 0x18.
+17:14:26.6688 [WARNING] machine-0/rcc: Unhandled read from offset 0xF0.
+17:14:26.6689 [WARNING] machine-1/rcc: Unhandled read from offset 0x18.
+17:14:26.6689 [WARNING] machine-1/rcc: Unhandled read from offset 0x18.
+17:14:26.6689 [WARNING] machine-0/rcc: Unhandled read from offset 0x18.
+17:14:26.6690 [WARNING] machine-1/rcc: Unhandled read from offset 0x1C.
+17:14:26.6690 [WARNING] machine-0/rcc: Unhandled read from offset 0x18.
+17:14:26.6694 [WARNING] machine-1/rcc: Unhandled read from offset 0x1C.
+17:14:26.6695 [WARNING] machine-0/rcc: Unhandled read from offset 0x18.
+17:14:26.6695 [WARNING] machine-1/rcc: Unhandled read from offset 0x20.
+17:14:26.6695 [WARNING] machine-0/rcc: Unhandled read from offset 0x1C.
+17:14:26.6695 [WARNING] machine-0/rcc: Unhandled read from offset 0x1C.
+17:14:26.6696 [WARNING] machine-0/rcc: Unhandled read from offset 0x20.
+17:14:26.6700 [WARNING] machine-1/rcc: Unhandled read from offset 0x30.
+17:14:26.6701 [WARNING] machine-1/rcc: Unhandled read from offset 0x30.
+17:14:26.6701 [WARNING] machine-1/rcc: Unhandled read from offset 0x18.
+17:14:26.6701 [WARNING] machine-0/rcc: Unhandled read from offset 0x30.
+17:14:26.6702 [WARNING] machine-1/rcc: Unhandled read from offset 0x18.
+17:14:26.6702 [WARNING] machine-0/rcc: Unhandled read from offset 0x30.
+17:14:26.6702 [WARNING] machine-1/rcc: Unhandled read from offset 0x1C.
+17:14:26.6706 [WARNING] machine-0/rcc: Unhandled read from offset 0x18.
+17:14:26.6707 [WARNING] machine-0/rcc: Unhandled read from offset 0x18.
+17:14:26.6707 [WARNING] machine-0/rcc: Unhandled read from offset 0x1C.
+17:14:26.6708 [WARNING] machine-0/rcc: Unhandled read from offset 0xD8.
+17:14:26.6708 [WARNING] machine-1/rcc: Unhandled read from offset 0xD8.
+17:14:26.6708 [WARNING] machine-0/rcc: Unhandled write to offset 0xD8, value 0x1.
+17:14:26.6712 [WARNING] machine-1/rcc: Unhandled write to offset 0xD8, value 0x1.
+17:14:26.6713 [WARNING] machine-1/rcc: Unhandled read from offset 0xD8.
+17:14:26.6713 [WARNING] machine-0/rcc: Unhandled read from offset 0xD8.
+17:14:26.6713 [WARNING] machine-0/rcc: Unhandled read from offset 0x50.
+17:14:26.6714 [WARNING] machine-1/rcc: Unhandled read from offset 0x50.
+17:14:26.6714 [WARNING] machine-0/rcc: Unhandled write to offset 0x50, value 0x10000000.
+17:14:26.6718 [WARNING] machine-1/rcc: Unhandled write to offset 0x50, value 0x10000000.
+17:14:26.6718 [WARNING] machine-0/rcc: Unhandled read from offset 0xEC.
+17:14:26.6719 [WARNING] machine-0/rcc: Unhandled write to offset 0xEC, value 0x100.
+17:14:26.6719 [WARNING] machine-0/rcc: Unhandled read from offset 0xEC.
+17:14:26.6719 [WARNING] machine-1/rcc: Unhandled read from offset 0xEC.
+17:14:26.6720 [WARNING] machine-1/rcc: Unhandled write to offset 0xEC, value 0x100.
+17:14:26.6723 [WARNING] machine-1/rcc: Unhandled read from offset 0xEC.
+17:14:26.6861 [WARNING] machine-0/fdcan1: Unhandled write to offset 0x1C. Unhandled bits: [1, 9-10, 17, 25-26] when writing value 0x20C01. Tags: NTSEG2 (0x1), NTSEG1 (0xC), NBRP (0x2), NSJW (0x0).
+17:14:26.6862 [WARNING] machine-1/fdcan1: Unhandled write to offset 0x1C. Unhandled bits: [1, 9-10, 17, 25-26] when writing value 0x20C01. Tags: NTSEG2 (0x1), NTSEG1 (0xC), NBRP (0x2), NSJW (0x0).
+17:14:26.6868 [WARNING] machine-1/fdcan1: Unhandled read from offset 0x108.
+17:14:26.6869 [WARNING] machine-0/fdcan1: Unhandled read from offset 0x108.
+17:14:26.6869 [WARNING] machine-1/fdcan1: Unhandled write to offset 0x108, value 0x0.
+17:14:26.6869 [WARNING] machine-0/fdcan1: Unhandled write to offset 0x108, value 0x0.
+17:14:26.6926 [WARNING] machine-0/rcc: Unhandled read from offset 0x54.
+17:14:26.6931 [WARNING] machine-0/rcc: Unhandled write to offset 0x54, value 0x0.
+17:14:26.6931 [WARNING] machine-0/rcc: Unhandled read from offset 0xF0.
+17:14:26.6932 [WARNING] machine-0/rcc: Unhandled write to offset 0xF0, value 0x10.
+17:14:26.6934 [WARNING] machine-0/rcc: Unhandled read from offset 0xF0.
+17:14:26.6935 [WARNING] machine-1/rcc: Unhandled read from offset 0x54.
+17:14:26.6936 [WARNING] machine-1/rcc: Unhandled write to offset 0x54, value 0x0.
+17:14:26.6937 [WARNING] machine-1/rcc: Unhandled read from offset 0xF0.
+17:14:26.6937 [WARNING] machine-1/rcc: Unhandled write to offset 0xF0, value 0x10.
+17:14:26.6942 [WARNING] machine-1/rcc: Unhandled read from offset 0xF0.
+17:14:26.6943 [WARNING] machine-1/sysbus: [cpu: 0x8005B26] ReadDoubleWord from non existing peripheral at 0x5C001000.
+17:14:26.6943 [WARNING] machine-0/sysbus: [cpu: 0x8005B26] ReadDoubleWord from non existing peripheral at 0x5C001000.
+17:14:26.6965 [WARNING] machine-0/dma1: Unhandled write to offset 0x8. Unhandled bits: [0-4] when writing value 0x3F. Tags: CFEIF0 (0x1), RESERVED (0x1), CDMEIF0 (0x1), CTEIF0 (0x1), CHTIF0 (0x1).
+17:14:26.6966 [WARNING] machine-1/dma1: Unhandled write to offset 0x8. Unhandled bits: [0-4] when writing value 0x3F. Tags: CFEIF0 (0x1), RESERVED (0x1), CDMEIF0 (0x1), CTEIF0 (0x1), CHTIF0 (0x1).
+17:14:26.6981 [WARNING] machine-0/usart1: Unhandled read from offset 0x2C.
+17:14:26.6982 [WARNING] machine-0/usart1: Unhandled write to offset 0x2C, value 0x0.
+17:14:26.6986 [WARNING] machine-0/rcc: Unhandled read from offset 0x54.
+17:14:26.6987 [WARNING] machine-1/usart1: Unhandled read from offset 0x2C.
+17:14:26.6987 [WARNING] machine-1/usart1: Unhandled write to offset 0x2C, value 0x0.
+17:14:26.6988 [WARNING] machine-1/rcc: Unhandled read from offset 0x54.
+17:14:26.6988 [WARNING] machine-0/rcc: Unhandled read from offset 0x30.
+17:14:26.6993 [WARNING] machine-0/rcc: Unhandled read from offset 0x30.
+17:14:26.6993 [WARNING] machine-0/rcc: Unhandled read from offset 0x18.
+17:14:26.6993 [WARNING] machine-1/rcc: Unhandled read from offset 0x30.
+17:14:26.6994 [WARNING] machine-0/rcc: Unhandled read from offset 0x18.
+17:14:26.6994 [WARNING] machine-1/rcc: Unhandled read from offset 0x30.
+17:14:26.6994 [WARNING] machine-0/rcc: Unhandled read from offset 0x1C.
+17:14:26.6994 [WARNING] machine-1/rcc: Unhandled read from offset 0x18.
+17:14:26.6994 [WARNING] machine-1/rcc: Unhandled read from offset 0x18.
+17:14:26.6995 [WARNING] machine-1/rcc: Unhandled read from offset 0x1C.
+17:14:26.7129 [WARNING] machine-1/nvic: Trying to set the priority for interrupt 16 to 0xFF, but it should be maskable with 0xF0
+17:14:26.7129 [WARNING] machine-0/nvic: Trying to set the priority for interrupt 16 to 0xFF, but it should be maskable with 0xF0
+17:14:31.2357 [INFO] machine-0: Machine paused.
+17:14:31.2358 [INFO] machine-1: Machine paused.
