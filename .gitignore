@@ -65,4 +65,4 @@ __pycache__/
 *.pyc
 
 # misc
-./project_notes/
+project_notes/
