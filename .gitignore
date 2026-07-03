@@ -65,4 +65,5 @@ __pycache__/
 *.pyc
 
 # misc
+renode*
 project_notes/
