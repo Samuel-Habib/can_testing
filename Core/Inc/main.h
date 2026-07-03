@@ -57,6 +57,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define HIGH_VOLTAGE_DISCONNECT_Pin GPIO_PIN_6
+#define HIGH_VOLTAGE_DISCONNECT_GPIO_Port GPIOG
 
 /* USER CODE BEGIN Private defines */
 
