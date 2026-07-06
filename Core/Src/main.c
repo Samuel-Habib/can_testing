@@ -114,7 +114,7 @@ const osThreadAttr_t can_handler_attributes = {
     .priority = (osPriority_t)osPriorityLow,
 };
 /* USER CODE BEGIN PV */
-
+uint32_t riemann_sum_total = 0;
 volatile unsigned int current_sensor_readings[ADC_CURRENT_SAMPLE_COUNT];
 volatile uint32_t overcurrent_samples_count = 0;
 
@@ -146,9 +146,27 @@ void StartTask06(void *argument);
  * ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-static inline uint64_t square(int64_t a) { return a * a; }
+static inline uint32_t square(int32_t a) { return a * a; }
+
+uint32_t uart_buffer[100];
 
 int uart_log(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size) {
+  // enable dma for uart (move out of here later)
+  USART1->CR3 |= (1 << 7);
+  DMA1_Stream0->PAR = (uint32_t)&(USART1->TDR);
+  DMA1_Stream0->M0AR = (uint32_t)&(uart_buffer);
+  DMA1_Stream0->CR;              // num of bytes
+  DMA1_Stream0->CR = ~(3 << 16); // channel priority PL 17:16
+  DMA1_Stream0->CR = (1 << 3);   // half transfers
+  USART1->ICR |= (1 << 6); /* Clear the TC flag in the USART_ISR register by
+                              setting the TCCF bit in the USART_ICR register. */
+  DMA1->LIFCR = (1 << 10); // Clear Half Transfer Interrupt Flag  (CHTIF)
+  DMA1->LIFCR = (1 << 11); // Clear Transfer Complete Interrupt Flag  (CTCIF)
+  DMA1_Stream0->CR |= 1;
+
+  USART1->CR1 &= ~(1 << 28 & 1 << 12); // 1 start bit, 8 Data bits, n Stop bit
+  USART1->BRR;
+
   HAL_UART_Receive_DMA(huart, pData, Size);
   HAL_UART_Transmit_DMA(huart, pData, Size);
   UART_CheckIdleState(huart);
@@ -158,56 +176,91 @@ int uart_log(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size) {
   return 0;
 }
 
-void DMA1_Stream0_IRQHandler() {
-  // clear the flag
+void DMA1_Stream1_IRQHandler() {
+  // dma1111
+  //  clear the flag
   DMA1->LIFCR = (1 << 5);
 
-  // if avg(adc samples == CURRENT_RATING){
-  // exti interrupt to gpio port
-  // }
-  // adc writes to the half buffer dma
-
-  // average
-  // make macro i < ADC_CURREN_SAMPLE_COUNT
-  uint32_t avg;
-  uint32_t total = 0;
-  for (int i = 0; i < 100; i++) {
-    total += current_sensor_readings[i];
-  }
-  avg = total / 100;
-  if (avg > SHORT_CIRCUIT_THRESHOLD) {
-    // gpio disconnect
-  }
-
-  // notify the task
+  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+  xTaskNotifyFromISR(batteryHandle, 0, 0, &xHigherPriorityTaskWoken);
+  portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+  /* all this does is notify the task at a regular interval set by timer 2*/
 }
 
+uint32_t current_sample = 0;
+uint32_t small_overcurrent_sanples_count = 0;
+
 void ADC_IRQHandler() {
+
+  // EOC
   // watchdog 1 isr
   if ((ADC1->ISR & (1 << 7)) & (ADC1->IER & (1 << 7))) {
     ADC1->ISR = (1 << 7);
-    overcurrent_samples_count++;
-    if (overcurrent_samples_count > SHORT_CURRENT_SAMPLE_THRESHOLD) {
-      HAL_GPIO_WritePin(HIGH_VOLTAGE_DISCONNECT_GPIO_Port,
-                        HIGH_VOLTAGE_DISCONNECT_Pin, GPIO_PIN_SET);
-      // disable the watchdog to avoid starving the system from repeated isr
-      // calls
+    // eoc checks for consecutive samples
+    // turn the watchdog off while the eoc is running
+    // also disable other watchdogs as this has "higher priority"
+    // this also means that both wdgs do not have access to the wdg_state
+    // variable at the same time
+
+    if (!(ADC1->IER & (1 << 2))) {
+      ADC1->IER |= (1 << 2);
       ADC1->IER &= ~(1 << 7);
-      overcurrent_samples_count = 0;
+      ADC1->IER &= ~(1 << 8);
+    } else {
     }
   }
-  // watchdog 2 isr
+
+  // watchdog 2 isr if current greater than 100%
   // adc111
   if ((ADC1->ISR & (1 << 8)) & (ADC1->IER & (1 << 8))) {
     ADC1->ISR = (1 << 8);
-    overcurrent_samples_count++;
-    if (overcurrent_samples_count > SHORT_CURRENT_SAMPLE_THRESHOLD) {
-      // disable watchdog 2 until task finishes
+
+    if (!(ADC1->IER & (1 << 2))) {
+      ADC1->IER |= (1 << 2);
       ADC1->IER &= ~(1 << 8);
+    }
+  }
+
+  if ((ADC1->ISR & (1 << 2)) & (ADC1->IER & (1 << 2))) {
+    ADC1->ISR = (1 << 2);
+    current_sample = ADC1->DR;
+
+    if (current_sample >= SHORT_CIRCUIT_THRESHOLD) {
+      // this would result in false in the case of the second watchdog
+      // or if the second watchdog missed it, it will record the sample
+      overcurrent_samples_count++;
+
+      if (overcurrent_samples_count > SHORT_CURRENT_SAMPLE_THRESHOLD) {
+        HAL_GPIO_WritePin(HIGH_VOLTAGE_DISCONNECT_GPIO_Port,
+                          HIGH_VOLTAGE_DISCONNECT_Pin, GPIO_PIN_SET);
+        // disable isr calls to prevent starving the rest of the system
+        // at this point wd2, wd2 and the eoc are all disabled
+        ADC1->IER &= ~(1 << 2);
+        overcurrent_samples_count = 0;
+      }
+    } else {
+      // if short was transiet, stop the eoc and restart the watchdog to check
+      // for shorts
+
       overcurrent_samples_count = 0;
-      BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-      xTaskNotifyFromISR(batteryHandle, 0, 0, &xHigherPriorityTaskWoken);
-      portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+      ADC1->IER &= ~(1 << 8);
+      ADC1->IER |= (1 << 7);
+    }
+
+    if (current_sample > CURRENT_RATING) {
+      small_overcurrent_sanples_count++;
+      /* TODO: rename to current_sample_threshold */
+      if (small_overcurrent_sanples_count > SHORT_CURRENT_SAMPLE_THRESHOLD) {
+        // disable watchdog 2 and eoc until task finishes
+        // enable dma interupts for regular sample readings to the deferred task
+        ADC1->IER &= ~(1 << 8);
+        ADC1->IER &= ~(1 << 2);
+        DMA1_Stream1->CR |= DMA_SxCR_HTIE;
+        small_overcurrent_sanples_count = 0;
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        xTaskNotifyFromISR(batteryHandle, 0, 0, &xHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+      }
     }
   }
 }
@@ -287,9 +340,9 @@ int main(void) {
   hdma_usart1_rx.Init = hdma_init;
   hdma_adc1.Init = hdma_init;
 
-  DMA1_Stream0->PAR =
+  DMA1_Stream1->PAR =
       (uint32_t)ADC1->DR; // replace with peripherial data address
-  DMA1_Stream0->M0AR =
+  DMA1_Stream1->M0AR =
       (uint32_t)current_sensor_readings; // begining of mem address
 
   /* USER CODE END 2 */
@@ -757,7 +810,9 @@ void StartTask02(void *argument) {
   /* Infinite loop */
   // 2222
   for (;;) {
+
     //    HAL_UART_Receive_DMA(&huart1, );
+    //    set up dma stream 2 for usart2 tx
 
     osDelay(1);
   }
@@ -776,6 +831,12 @@ void StartTask03(void *argument) {
   /* Infinite loop */
   // 3333
   uint32_t ulNotifiedValue;
+  uint32_t t_delta = 100000;
+  uint32_t max_time = t_delta * 2;
+  uint32_t time = 0;
+  uint32_t max_sustained = square(80 - 75) * t_delta *
+                           2; /* Σ (75-80)^2 * 2  = 50 A^2 * s // maximum  */
+
   for (;;) {
     xTaskNotifyWait(0x00,             /* Don't clear any bits on entry. */
                     ULONG_MAX,        /* Clear all bits on exit. */
@@ -783,21 +844,28 @@ void StartTask03(void *argument) {
                     portMAX_DELAY);   /* Block indefinitely. */
 
     // time_delta = 1/100,000 or 10 micro seconds
-    // to keep the math in integers, 100k will be treated as 1
-    //
-    /* Σ (I_measured - 80)^2 * delta_t */
-    uint32_t t_delta = 100000;
-    uint64_t max_sustained =
-        square(80 - 75) * t_delta *
-        200000; /* Σ (75-80)^2 * 2  = 50 A^2 * s // maximum  */
-    uint64_t total = 0;
-    for (int i = 0; i < ADC_CURRENT_SAMPLE_COUNT; ++i) {
-      total += square(current_sensor_readings[i] - 75) * t_delta;
-      if (total > max_sustained) {
-        HAL_GPIO_WritePin(HIGH_VOLTAGE_DISCONNECT_GPIO_Port,
-                          HIGH_VOLTAGE_DISCONNECT_Pin, GPIO_PIN_SET);
+    // to keep the math in integers, 1 time delta will be treated as 1
+
+    /* Σ (80 - I_measured)^2 * delta_t */
+
+    // (2 second curve) t_dela to ms to s
+    if (time < max_time) {
+      for (int i = 0; i < ADC_CURRENT_SAMPLE_COUNT; ++i) {
+        // no need to multiply by 100k here since we only need one time delta
+        // and one time delta is 1
+        riemann_sum_total += square(current_sensor_readings[i] - 75);
+        if (riemann_sum_total > max_sustained) {
+          HAL_GPIO_WritePin(HIGH_VOLTAGE_DISCONNECT_GPIO_Port,
+                            HIGH_VOLTAGE_DISCONNECT_Pin, GPIO_PIN_SET);
+        }
       }
+      time += ADC_CURRENT_SAMPLE_COUNT;
+    } else {
+      time = 0;
+      riemann_sum_total = 0;
     }
+    // restart watchdog and block for more samples
+    ADC1->IER &= ~(1 << 8);
     // next todo: implment state so this can survive for two seconds
   }
   /* USER CODE END StartTask03 */
