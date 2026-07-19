@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "FreeRTOS.h"
+#include "stm32h7xx_hal_cortex.h"
 #include "task.h"
 /* USER CODE END Includes */
 
@@ -159,6 +160,26 @@ void DebugMon_Handler(void) {
 void DMA1_Stream0_IRQHandler(void) {
   /* USER CODE BEGIN DMA1_Stream0_IRQn 0 */
 
+  // logging (lower priority)
+  DMA1->LIFCR = DMA_LIFCR_CTCIF0; // ctcif
+  DMA1_Stream0->CR &= 0;          // disable dma
+  tail = (tail + MAX_MESSAGE_LEN) % UART_BUFFER_SIZE;
+
+  uint32_t x = taskENTER_CRITICAL_FROM_ISR();
+  buffer_total -= MAX_MESSAGE_LEN;
+  taskEXIT_CRITICAL_FROM_ISR(x);
+
+  uart_buffer_full = false;
+  if (buffer_total == 0)
+    DMA1_Stream0->CR &= 0; // en = 0;
+  // disable the dma when the ring buffer is empty
+  else {
+    // reload ndtr and move on to the next message
+    DMA1_Stream0->NDTR = MAX_MESSAGE_LEN; // bytes
+    DMA1_Stream0->M0AR = (uint32_t)&(uart_buffer[tail]);
+    DMA1_Stream0->CR |= 1; // en = 1;
+  }
+
   /* USER CODE END DMA1_Stream0_IRQn 0 */
   HAL_DMA_IRQHandler(&hdma_usart1_rx);
   /* USER CODE BEGIN DMA1_Stream0_IRQn 1 */
@@ -171,6 +192,17 @@ void DMA1_Stream0_IRQHandler(void) {
  */
 void DMA1_Stream1_IRQHandler(void) {
   /* USER CODE BEGIN DMA1_Stream1_IRQn 0 */
+
+  // dma1111
+  //  clear the flag
+  DMA1->LIFCR = DMA_LIFCR_CHTIF1;
+
+  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+  xTaskNotifyFromISR(batteryHandle, 0, 0, &xHigherPriorityTaskWoken);
+  portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+  /* all this does is notify the task at a regular interval set by timer 2*/
+  /* the deffered task should finish executing well below this interrupt
+   * which should fire every 1 ms*/
 
   /* USER CODE END DMA1_Stream1_IRQn 0 */
   HAL_DMA_IRQHandler(&hdma_adc1);
@@ -185,6 +217,78 @@ void DMA1_Stream1_IRQHandler(void) {
 void ADC_IRQHandler(void) {
   /* USER CODE BEGIN ADC_IRQn 0 */
 
+  // EOC
+  // watchdog 1 isr
+  if ((ADC1->ISR & (1 << 7)) & (ADC1->IER & (1 << 7))) {
+    ADC1->ISR = (1 << 7);
+    // eoc checks for consecutive samples
+    // turn the watchdog off while the eoc is running
+    // also disable other watchdogs as this has "higher priority"
+    // this also means that both wdgs do not have access to the wdg_state
+    // variable at the same time
+
+    if (!(ADC1->IER & (1 << 2))) {
+      ADC1->IER |= (1 << 2);
+      ADC1->IER &= ~(1 << 7);
+      ADC1->IER &= ~(1 << 8);
+    } else {
+    }
+  }
+
+  // watchdog 2 isr if current greater than 100%
+  // adc111
+  if ((ADC1->ISR & (1 << 8)) & (ADC1->IER & (1 << 8))) {
+    ADC1->ISR = (1 << 8);
+
+    if (!(ADC1->IER & (1 << 2))) {
+      ADC1->IER |= (1 << 2);
+      ADC1->IER &= ~(1 << 8);
+    }
+  }
+
+  if ((ADC1->ISR & (1 << 2)) & (ADC1->IER & (1 << 2))) {
+    ADC1->ISR = (1 << 2);
+    current_sample = ADC1->DR;
+
+    if (current_sample >= SHORT_CIRCUIT_THRESHOLD) {
+      // this would result in false in the case of the second watchdog
+      // or if the second watchdog missed it, it will record the sample
+      overcurrent_samples_count++;
+
+      if (overcurrent_samples_count > SHORT_CURRENT_SAMPLE_THRESHOLD) {
+        HAL_GPIO_WritePin(HIGH_VOLTAGE_DISCONNECT_GPIO_Port,
+                          HIGH_VOLTAGE_DISCONNECT_Pin, GPIO_PIN_SET);
+        // disable isr calls to prevent starving the rest of the system
+        // at this point wd2, wd2 and the eoc are all disabled
+        ADC1->IER &= ~(1 << 2);
+        overcurrent_samples_count = 0;
+      }
+    } else {
+      // if short was transiet, stop the eoc and restart the watchdog to check
+      // for shorts
+
+      overcurrent_samples_count = 0;
+      ADC1->IER &= ~(1 << 8);
+      ADC1->IER |= (1 << 7);
+    }
+
+    if (current_sample > CURRENT_RATING) {
+      small_overcurrent_sanples_count++;
+      /* TODO: rename to current_sample_threshold */
+      if (small_overcurrent_sanples_count > SHORT_CURRENT_SAMPLE_THRESHOLD) {
+        // disable watchdog 2 and eoc until task finishes
+        // enable dma interupts for regular sample readings to the deferred task
+        ADC1->IER &= ~(1 << 8);
+        ADC1->IER &= ~(1 << 2);
+        DMA1_Stream1->CR |= DMA_SxCR_HTIE;
+        small_overcurrent_sanples_count = 0;
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        xTaskNotifyFromISR(batteryHandle, 0, 0, &xHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+      }
+    }
+  }
+
   /* USER CODE END ADC_IRQn 0 */
   HAL_ADC_IRQHandler(&hadc1);
   /* USER CODE BEGIN ADC_IRQn 1 */
@@ -198,8 +302,9 @@ void ADC_IRQHandler(void) {
 void TIM1_UP_IRQHandler(void) {
   /* USER CODE BEGIN TIM1_UP_IRQn 0 */
 
-  /* USER CODE END TIM1_UP_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim1);
+  TIM1->CR =
+      /* USER CODE END TIM1_UP_IRQn 0 */
+      HAL_TIM_IRQHandler(&htim1);
   /* USER CODE BEGIN TIM1_UP_IRQn 1 */
 
   /* USER CODE END TIM1_UP_IRQn 1 */
@@ -207,4 +312,6 @@ void TIM1_UP_IRQHandler(void) {
 
 /* USER CODE BEGIN 1 */
 
-/* USER CODE END 1 */
+void HAL_SYSTICK_IRQHandler()
+
+    /* USER CODE END 1 */

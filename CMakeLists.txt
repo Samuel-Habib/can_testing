@@ -43,14 +43,14 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
     ./Core/Inc/
 )
 
-# Add sources to executable
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE
-    Core/Src/can.c
-)
+# Automatically discover and add user source files
+file(GLOB_RECURSE USER_SOURCES CONFIGURE_DEPENDS "App/Src/*.c")
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE ${USER_SOURCES})
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
+    App/Inc
 )
 
 # Add project symbols (macros)

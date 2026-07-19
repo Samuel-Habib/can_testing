@@ -54,6 +54,8 @@
 
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
-
+void vApplicationIdleHook(void) {
+  __asm volatile("wfi");
+}
 /* USER CODE END Application */
 

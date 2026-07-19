@@ -1,5 +1,5 @@
 Clear
-logFile @/root/dev/ru-solar/can_testing/renode.log
+logFile @/root/dev/ru-solar/can_testing/logs/renode.log
 
 # ============================ GLOBAL SETUP ============================
 emulation CreateUartPtyTerminal "term" "/tmp/uart" true
@@ -11,15 +11,21 @@ machine LoadPlatformDescription @platforms/cpus/stm32h753.repl
 
 # Set context and connect peripherals directly
 mach set "machine-0"
+sysbus Unregister sysbus.pwr
+sysbus Unregister sysbus.watchdog
+sysbus SilenceRange <0x58004800 0x400>
+sysbus SilenceRange <0x5C001000 0x400>
+machine PyDevFromFile @/root/dev/ru-solar/can_testing/pwr_mock.py 0x58024800 0x400 false "pwr"
 connector Connect sysbus.usart1 term
 connector Connect sysbus.fdcan1 canHub
-connector Connect sysbus.socket_can canHub
+# connector Connect sysbus.socket_can canHub
 
 macro reset
 """
     sysbus LoadELF @/root/dev/ru-solar/can_testing/build/ru-tel.elf
     cpu VectorTableOffset 0x08000000
     cpu SP 0x20020000
+    cpu PerformanceInMips 100
 """
 
 # ============================ MACHINE 1 SETUP ============================
@@ -27,6 +33,11 @@ mach create "machine-1"
 machine LoadPlatformDescription @platforms/cpus/stm32h753.repl
 
 mach set "machine-1"
+sysbus Unregister sysbus.pwr
+sysbus Unregister sysbus.watchdog
+sysbus SilenceRange <0x58004800 0x400>
+sysbus SilenceRange <0x5C001000 0x400>
+machine PyDevFromFile @/root/dev/ru-solar/can_testing/pwr_mock.py 0x58024800 0x400 false "pwr"
 connector Connect sysbus.fdcan1 canHub
 
 macro reset
@@ -34,6 +45,7 @@ macro reset
     sysbus LoadELF @/root/dev/ru-solar/can_testing/build/ru-tel.elf
     cpu VectorTableOffset 0x08000000
     cpu SP 0x20020000
+    cpu PerformanceInMips 100
 """
 
 # ============================ EXECUTION ============================
@@ -44,3 +56,6 @@ runMacro $reset
 
 mach set "machine-0"
 machine StartGdbServer 3333
+
+# Start the emulation automatically
+start

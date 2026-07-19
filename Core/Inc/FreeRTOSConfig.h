@@ -62,10 +62,12 @@ extern uint32_t SystemCoreClock;
 #define configENABLE_FPU 0
 #define configENABLE_MPU 0
 
+#define configUSE_PORT_OPTIMISED_TASK_SELECTION 0
+
 #define configUSE_PREEMPTION 1
 #define configSUPPORT_STATIC_ALLOCATION 1
 #define configSUPPORT_DYNAMIC_ALLOCATION 1
-#define configUSE_IDLE_HOOK 0
+#define configUSE_IDLE_HOOK 1
 #define configUSE_TICK_HOOK 0
 #define configCPU_CLOCK_HZ (SystemCoreClock)
 #define configTICK_RATE_HZ ((TickType_t)1000)
@@ -157,13 +159,20 @@ See http://www.FreeRTOS.org/RTOS-Cortex-M3-M4.html. */
 /* Normal assert() semantics without relying on the provision of an assert.h
 header file. */
 /* USER CODE BEGIN 1 */
+
+/* #define configASSERT(x) \
+//   if ((x) == 0) { \
+//     taskDISABLE_INTERRUPTS(); \
+//     for (;;) \
+//       ; \
+//   }
+*/
 #define configASSERT(x)                                                        \
   if ((x) == 0) {                                                              \
     taskDISABLE_INTERRUPTS();                                                  \
     for (;;)                                                                   \
       ;                                                                        \
   }
-#define configASSERT (x) if ((x) == 0) vAssertCalled(__FILE__, __LINE__)
 
 /* USER CODE END 1 */
 

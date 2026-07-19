@@ -22,11 +22,14 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
-#include "FreeRTOS.h"
 #include "can.h"
+#include "cmsis_os2.h"
+#include "logging.h"
+#include "message_buffer.h"
 #include "portmacro.h"
+#include "projdefs.h"
 #include "stm32h753xx.h"
+#include "stm32h7xx_hal.h"
 #include "stm32h7xx_hal_dma.h"
 #include "stm32h7xx_hal_fdcan.h"
 #include "stm32h7xx_hal_gpio.h"
@@ -34,6 +37,8 @@
 #include "task.h"
 #include <limits.h>
 #include <math.h>
+#include <stdio.h>
+#include <string.h>
 
 /* USER CODE END Includes */
 
@@ -44,12 +49,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define CURRENT_RATING 100
-#define ADC_CURRENT_SAMPLE_COUNT 100
-#define SHORT_CURRENT_SAMPLE_THRESHOLD 3
-#define SHORT_CIRCUIT_THRESHOLD CURRENT_RATING * 3
-#define t                                                                      \
-  160000000 / (1599 + 1)) // 1/ (main clock / ARR+1) or 1/trigger_frequency
 
 /* USER CODE END PD */
 
@@ -104,7 +103,7 @@ osThreadId_t watchdogHandle;
 const osThreadAttr_t watchdog_attributes = {
     .name = "watchdog",
     .stack_size = 128 * 4,
-    .priority = (osPriority_t)osPriorityLow,
+    .priority = (osPriority_t)osPriorityHigh,
 };
 /* Definitions for can_handler */
 osThreadId_t can_handlerHandle;
@@ -117,6 +116,17 @@ const osThreadAttr_t can_handler_attributes = {
 uint32_t riemann_sum_total = 0;
 volatile unsigned int current_sensor_readings[ADC_CURRENT_SAMPLE_COUNT];
 volatile uint32_t overcurrent_samples_count = 0;
+
+QueueHandle_t xLogQueue;
+SemaphoreHandle_t testSemaphore = NULL;
+unsigned char uart_buffer[UART_BUFFER_SIZE];
+uint16_t buffer_total = 0;
+uint16_t head = 0;
+uint16_t tail = 0;
+bool uart_buffer_full = false;
+
+uint32_t current_sample = 0;
+uint32_t small_overcurrent_sanples_count = 0;
 
 /* USER CODE END PV */
 
@@ -147,123 +157,6 @@ void StartTask06(void *argument);
 /* USER CODE BEGIN 0 */
 
 static inline uint32_t square(int32_t a) { return a * a; }
-
-uint32_t uart_buffer[100];
-
-int uart_log(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size) {
-  // enable dma for uart (move out of here later)
-  USART1->CR3 |= (1 << 7);
-  DMA1_Stream0->PAR = (uint32_t)&(USART1->TDR);
-  DMA1_Stream0->M0AR = (uint32_t)&(uart_buffer);
-  DMA1_Stream0->CR;              // num of bytes
-  DMA1_Stream0->CR = ~(3 << 16); // channel priority PL 17:16
-  DMA1_Stream0->CR = (1 << 3);   // half transfers
-  USART1->ICR |= (1 << 6); /* Clear the TC flag in the USART_ISR register by
-                              setting the TCCF bit in the USART_ICR register. */
-  DMA1->LIFCR = (1 << 10); // Clear Half Transfer Interrupt Flag  (CHTIF)
-  DMA1->LIFCR = (1 << 11); // Clear Transfer Complete Interrupt Flag  (CTCIF)
-  DMA1_Stream0->CR |= 1;
-
-  USART1->CR1 &= ~(1 << 28 & 1 << 12); // 1 start bit, 8 Data bits, n Stop bit
-  USART1->BRR;
-
-  HAL_UART_Receive_DMA(huart, pData, Size);
-  HAL_UART_Transmit_DMA(huart, pData, Size);
-  UART_CheckIdleState(huart);
-  if (USART1->ISR & USART_ISR_IDLE) {
-    // do idle code
-  }
-  return 0;
-}
-
-void DMA1_Stream1_IRQHandler() {
-  // dma1111
-  //  clear the flag
-  DMA1->LIFCR = (1 << 5);
-
-  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-  xTaskNotifyFromISR(batteryHandle, 0, 0, &xHigherPriorityTaskWoken);
-  portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-  /* all this does is notify the task at a regular interval set by timer 2*/
-}
-
-uint32_t current_sample = 0;
-uint32_t small_overcurrent_sanples_count = 0;
-
-void ADC_IRQHandler() {
-
-  // EOC
-  // watchdog 1 isr
-  if ((ADC1->ISR & (1 << 7)) & (ADC1->IER & (1 << 7))) {
-    ADC1->ISR = (1 << 7);
-    // eoc checks for consecutive samples
-    // turn the watchdog off while the eoc is running
-    // also disable other watchdogs as this has "higher priority"
-    // this also means that both wdgs do not have access to the wdg_state
-    // variable at the same time
-
-    if (!(ADC1->IER & (1 << 2))) {
-      ADC1->IER |= (1 << 2);
-      ADC1->IER &= ~(1 << 7);
-      ADC1->IER &= ~(1 << 8);
-    } else {
-    }
-  }
-
-  // watchdog 2 isr if current greater than 100%
-  // adc111
-  if ((ADC1->ISR & (1 << 8)) & (ADC1->IER & (1 << 8))) {
-    ADC1->ISR = (1 << 8);
-
-    if (!(ADC1->IER & (1 << 2))) {
-      ADC1->IER |= (1 << 2);
-      ADC1->IER &= ~(1 << 8);
-    }
-  }
-
-  if ((ADC1->ISR & (1 << 2)) & (ADC1->IER & (1 << 2))) {
-    ADC1->ISR = (1 << 2);
-    current_sample = ADC1->DR;
-
-    if (current_sample >= SHORT_CIRCUIT_THRESHOLD) {
-      // this would result in false in the case of the second watchdog
-      // or if the second watchdog missed it, it will record the sample
-      overcurrent_samples_count++;
-
-      if (overcurrent_samples_count > SHORT_CURRENT_SAMPLE_THRESHOLD) {
-        HAL_GPIO_WritePin(HIGH_VOLTAGE_DISCONNECT_GPIO_Port,
-                          HIGH_VOLTAGE_DISCONNECT_Pin, GPIO_PIN_SET);
-        // disable isr calls to prevent starving the rest of the system
-        // at this point wd2, wd2 and the eoc are all disabled
-        ADC1->IER &= ~(1 << 2);
-        overcurrent_samples_count = 0;
-      }
-    } else {
-      // if short was transiet, stop the eoc and restart the watchdog to check
-      // for shorts
-
-      overcurrent_samples_count = 0;
-      ADC1->IER &= ~(1 << 8);
-      ADC1->IER |= (1 << 7);
-    }
-
-    if (current_sample > CURRENT_RATING) {
-      small_overcurrent_sanples_count++;
-      /* TODO: rename to current_sample_threshold */
-      if (small_overcurrent_sanples_count > SHORT_CURRENT_SAMPLE_THRESHOLD) {
-        // disable watchdog 2 and eoc until task finishes
-        // enable dma interupts for regular sample readings to the deferred task
-        ADC1->IER &= ~(1 << 8);
-        ADC1->IER &= ~(1 << 2);
-        DMA1_Stream1->CR |= DMA_SxCR_HTIE;
-        small_overcurrent_sanples_count = 0;
-        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-        xTaskNotifyFromISR(batteryHandle, 0, 0, &xHigherPriorityTaskWoken);
-        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-      }
-    }
-  }
-}
 
 /* USER CODE END 0 */
 
@@ -341,20 +234,36 @@ int main(void) {
   hdma_adc1.Init = hdma_init;
 
   DMA1_Stream1->PAR =
-      (uint32_t)ADC1->DR; // replace with peripherial data address
+      (uint32_t)&(ADC1->DR); // replace with peripherial data address
   DMA1_Stream1->M0AR =
-      (uint32_t)current_sensor_readings; // begining of mem address
+      (uint32_t)&current_sensor_readings; // begining of mem address
 
   /* USER CODE END 2 */
+  // {{Q}}
+  // how does it get here???
+  // hmmmmmm i think i've been thinking about this wrong
+  // i thought it wouldn't get here because this is out side of the while
+  // loop... but if you look at the code the while loop never actually executes
+  // because control is passed to the rtos kernel so is this something that
+  // happens in the idle task? it re-initalizes them? can this be turned off in
+  // the case that you would want something intialized only one time?
+  static uint8_t bufff[32] = "why is this running???\r \n \n";
+  HAL_UART_Transmit(&huart1, bufff, sizeof(bufff), 1000);
 
   /* Init scheduler */
   osKernelInitialize();
 
   /* USER CODE BEGIN RTOS_MUTEX */
-  /* add mutexes, ... */
+
+  // extern SemaphoreHandle_t uartMutex;
+  // uartMutex = xSemaphoreCreateMutex();
+  //  why can't i do this
+  //  extern SemaphoreHandle_t uartMutex = xSemaphoreCreateMutex();
+
   /* USER CODE END RTOS_MUTEX */
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
+  testSemaphore = xSemaphoreCreateBinary();
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
 
@@ -363,7 +272,15 @@ int main(void) {
   /* USER CODE END RTOS_TIMERS */
 
   /* USER CODE BEGIN RTOS_QUEUES */
-  /* add queues, ... */
+
+  xLogQueue = xQueueCreate(30, sizeof(char) * MAX_MESSAGE_LEN);
+
+  // try this later, right now focus on implementing a gatekeeper with a
+  // regular queue
+  //  static MessageBufferHandle_t xControlMessageBuffer;
+  //  xControlMessageBuffer =
+  //  xMessageBufferCreate(mbaCONTROL_MESSAGE_BUFFER_SIZE);
+
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -393,6 +310,8 @@ int main(void) {
   /* USER CODE BEGIN RTOS_EVENTS */
   /* add events, ... */
   /* USER CODE END RTOS_EVENTS */
+  static uint8_t buffff[8] = "XXXX";
+  HAL_UART_Transmit(&huart1, buffff, sizeof(buffff), 1000);
 
   /* Start scheduler */
   osKernelStart();
@@ -402,8 +321,15 @@ int main(void) {
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1) {
-    /* USER CODE END WHILE */
+    uint32_t active_isr = __get_IPSR();
+    char buf[128];
+    snprintf(buf, sizeof(buf), "%d \r \n", active_isr);
+    uint8_t while_error_message[] = "kernel ended \r \n";
+    HAL_UART_Transmit(&huart1, while_error_message, sizeof(while_error_message),
+                      1000);
+    HAL_UART_Transmit(&huart1, buf, sizeof(buf), 1000);
 
+    /* USER CODE END WHILE */
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -775,11 +701,14 @@ void StartDefaultTask(void *argument) {
   // 11111
   /* Infinite loop */
   for (;;) {
+    //  HAL_Delay(200);
+    //    static uint8_t h[16] = "FIRST TASK \r \n";
+    //   HAL_UART_Transmit(&huart1, h, sizeof(h), 1000);
+
     // [ ] Set the mpu
     // [ ] uart
     // [ ] can
-
-    osDelay(1);
+    osDelay(100000);
 
     can_poll_rx(&hfdcan1, rx_data_bufer);
     can_tx(&hfdcan1, tx_data_bufer);
@@ -809,7 +738,45 @@ void StartTask02(void *argument) {
   /* USER CODE BEGIN StartTask02 */
   /* Infinite loop */
   // 2222
+  char noMessages[19] = "No New Messages \r \n";
+  char data[128] = {0};
+  // xSemaphoreGive(testSemaphore);
+
+  // note use snprintf_()
   for (;;) {
+    // right now the strategy if it's full, is to just delay
+    xQueueReceive(xLogQueue, &data, pdMS_TO_TICKS(2000));
+    if (uxQueueMessagesWaiting(xLogQueue) == 0) {
+      // how would it be full if there are no mesages in the queue?? lol
+      taskENTER_CRITICAL();
+      buffer_total += MAX_MESSAGE_LEN;
+      taskEXIT_CRITICAL();
+      if (log_module(noMessages) == -1) {
+        osDelay(200);
+      }
+    } else {
+      if (!uart_buffer_full) {
+
+        // will send if uart_buffer_full is not true and it doesn't become true
+        // when the function is first called
+        taskENTER_CRITICAL();
+        buffer_total += MAX_MESSAGE_LEN;
+        taskEXIT_CRITICAL();
+
+        if (log_module(data) == -1) {
+          osDelay(200);
+        }
+
+      } else {
+        osDelay(200);
+      }
+    }
+
+    HAL_UART_Transmit(&huart1, uart_buffer, sizeof(uart_buffer), 1000);
+    HAL_Delay(200);
+    // can you notify a task from another task?
+    // in reality uart_buffer = data;
+    // uart_buffer = "hello, testing logging \r \n";
 
     //    HAL_UART_Receive_DMA(&huart1, );
     //    set up dma stream 2 for usart2 tx
@@ -881,8 +848,27 @@ void StartTask03(void *argument) {
 void StartTask04(void *argument) {
   /* USER CODE BEGIN StartTask04 */
   /* Infinite loop */
+  // wifi11111
   for (;;) {
-    osDelay(1);
+    uint8_t task4str[60] = "task 4 enterd \r \n";
+    HAL_UART_Transmit(&huart1, task4str, sizeof(task4str), 1000);
+    char sampleData[128] = "Sample data \r \n";
+    char str1[128] = "string1 \r \n";
+    char str2[128] = "string2 \r \n";
+    char str3[128] = "string3 \r \n";
+    char str4[128] = "string4 \r \n";
+    char str5[128] = "string5 \r \n";
+
+    if (uxQueueMessagesWaiting(xLogQueue) == 0) {
+      xQueueSend(xLogQueue, (void *)&sampleData, portMAX_DELAY);
+      xQueueSend(xLogQueue, (void *)&str1, portMAX_DELAY);
+      xQueueSend(xLogQueue, (void *)&str2, portMAX_DELAY);
+      xQueueSend(xLogQueue, (void *)&str3, portMAX_DELAY);
+      xQueueSend(xLogQueue, (void *)&str4, portMAX_DELAY);
+      xQueueSend(xLogQueue, (void *)&str5, portMAX_DELAY);
+    }
+    // xSemaphoreTake(testSemaphore, (TickType_t)100000);
+    osDelay(10000);
   }
   /* USER CODE END StartTask04 */
 }
@@ -898,7 +884,8 @@ void StartTask05(void *argument) {
   /* USER CODE BEGIN StartTask05 */
   /* Infinite loop */
   for (;;) {
-    osDelay(1);
+    HAL_IWDG_Refresh(&hiwdg1);
+    osDelay(100);
   }
   /* USER CODE END StartTask05 */
 }
@@ -913,7 +900,10 @@ void StartTask05(void *argument) {
 void StartTask06(void *argument) {
   /* USER CODE BEGIN StartTask06 */
   /* Infinite loop */
+  // can6666
+  char *testString = "this is a test of the char uart buffer scheme";
   for (;;) {
+    xQueueSendToBack(xLogQueue, testString, 0);
     osDelay(1);
   }
   /* USER CODE END StartTask06 */
@@ -943,7 +933,7 @@ void MPU_Config(void) {
 
   HAL_MPU_ConfigRegion(&MPU_InitStruct);
   /* Enables the MPU */
-  HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
+  // HAL_MPU_Enable(MPU_PRIVILEGED_DEFAULT);
 }
 
 /**
