@@ -3,6 +3,7 @@ logFile @/root/dev/ru-solar/can_testing/logs/renode.log
 
 # ============================ GLOBAL SETUP ============================
 emulation CreateUartPtyTerminal "term" "/tmp/uart" true
+emulation CreateServerSocketTerminal 19021 "rtt" true
 emulation CreateCANHub "canHub"
 
 # ============================ MACHINE 0 SETUP ============================
@@ -25,7 +26,9 @@ logLevel 3 sysbus.fdcan1
 machine PyDevFromFile @/root/dev/ru-solar/can_testing/pwr_mock.py 0x58024800 0x400 false "pwr"
 connector Connect sysbus.usart1 term
 connector Connect sysbus.fdcan1 canHub
-# connector Connect sysbus.socket_can canHub
+machine CreateVirtualConsole "segger_rtt"
+connector Connect sysbus.segger_rtt rtt
+include @scripts/single-node/segger-rtt.py
 
 macro reset
 """
@@ -33,6 +36,7 @@ macro reset
     cpu VectorTableOffset 0x08000000
     cpu SP 0x20020000
     cpu PerformanceInMips 100
+    setup_segger_rtt segger_rtt false false true false false
 """
 
 # ============================ MACHINE 1 SETUP ============================
