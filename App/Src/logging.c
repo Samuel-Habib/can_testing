@@ -3,13 +3,10 @@
 
 signed int log_module(char data[]) {
 
-  if (buffer_total == UART_BUFFER_SIZE) {
-    // capacity is 3 at any given time
-    // research problem: is there a way we can make this 4?
+  if (buffer_total >= UART_BUFFER_SIZE - 128) {
     uart_buffer_full = true;
     return -1;
   }
-
   bool wrap_around = (head + MAX_MESSAGE_LEN > UART_BUFFER_SIZE);
   if (wrap_around) {
     uint16_t end_bytes = UART_BUFFER_SIZE - head;

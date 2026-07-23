@@ -15,6 +15,13 @@ sysbus Unregister sysbus.pwr
 sysbus Unregister sysbus.watchdog
 sysbus SilenceRange <0x58004800 0x400>
 sysbus SilenceRange <0x5C001000 0x400>
+sysbus SilenceRange <0x51008100 0x100>
+logLevel 3 sysbus.rcc
+logLevel 3 sysbus.syscfg
+logLevel 3 sysbus.adcM1S2
+logLevel 3 sysbus.dma1
+logLevel 3 sysbus.timer2
+logLevel 3 sysbus.fdcan1
 machine PyDevFromFile @/root/dev/ru-solar/can_testing/pwr_mock.py 0x58024800 0x400 false "pwr"
 connector Connect sysbus.usart1 term
 connector Connect sysbus.fdcan1 canHub
@@ -37,6 +44,13 @@ sysbus Unregister sysbus.pwr
 sysbus Unregister sysbus.watchdog
 sysbus SilenceRange <0x58004800 0x400>
 sysbus SilenceRange <0x5C001000 0x400>
+sysbus SilenceRange <0x51008100 0x100>
+logLevel 3 sysbus.rcc
+logLevel 3 sysbus.syscfg
+logLevel 3 sysbus.adcM1S2
+logLevel 3 sysbus.dma1
+logLevel 3 sysbus.timer2
+logLevel 3 sysbus.fdcan1
 machine PyDevFromFile @/root/dev/ru-solar/can_testing/pwr_mock.py 0x58024800 0x400 false "pwr"
 connector Connect sysbus.fdcan1 canHub
 

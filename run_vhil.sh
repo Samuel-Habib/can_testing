@@ -89,10 +89,15 @@ if [ -n "$TMUX" ]; then
     tmux select-pane -L
     
     if [ "$MODE" != "no-gdb" ]; then
+        GDB_CMD="sleep 1.5 && gdb-multiarch -q -x gdb_init.gdb -ex 'target remote localhost:3333' -ex 'load' -ex 'layout split' -ex 'focus cmd'"
+        if [ "$MODE" = "normal" ]; then
+            GDB_CMD="$GDB_CMD -ex 'continue'"
+        fi
+        GDB_CMD="$GDB_CMD build/ru-tel.elf"
+
         # Split the left column vertically (creates left-bottom pane)
         tmux split-window -v
-        # In the left-bottom pane, run GDB once the Renode server is online
-        tmux send-keys "sleep 1.5 && gdb-multiarch -q -ex 'target remote localhost:3333' -ex 'load' -ex 'set disassembly-flavor intel' -ex 'layout split' -ex 'focus cmd' build/ru-tel.elf" C-m
+        tmux send-keys "$GDB_CMD" C-m
         # Move focus back up to the Renode Monitor pane
         tmux select-pane -U
     fi
@@ -127,9 +132,15 @@ else
     tmux select-pane -L -t "$SESSION_NAME:VHIL"
     
     if [ "$MODE" != "no-gdb" ]; then
+        GDB_CMD="sleep 1.5 && gdb-multiarch -q -x gdb_init.gdb -ex 'target remote localhost:3333' -ex 'load' -ex 'layout split' -ex 'focus cmd'"
+        if [ "$MODE" = "normal" ]; then
+            GDB_CMD="$GDB_CMD -ex 'continue'"
+        fi
+        GDB_CMD="$GDB_CMD build/ru-tel.elf"
+
         # Split left column vertically (creates left-bottom pane)
         tmux split-window -v -t "$SESSION_NAME:VHIL"
-        tmux send-keys -t "$SESSION_NAME:VHIL" "sleep 1.5 && gdb-multiarch -q -ex 'target remote localhost:3333' -ex 'load' -ex 'set disassembly-flavor intel' -ex 'layout split' -ex 'focus cmd' build/ru-tel.elf" C-m
+        tmux send-keys -t "$SESSION_NAME:VHIL" "$GDB_CMD" C-m
         # Select the left-top pane (Renode Monitor) so focus is on Renode
         tmux select-pane -U -t "$SESSION_NAME:VHIL"
     fi
@@ -151,7 +162,9 @@ else
     
     # Start the session in the VHIL window
     tmux select-window -t "$SESSION_NAME:VHIL"
-    
     # Attach to the tmux session
     tmux attach-session -t "$SESSION_NAME"
+    
+    # Kill the session when detached
+    tmux kill-session -t "$SESSION_NAME"
 fi

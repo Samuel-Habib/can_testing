@@ -12,6 +12,24 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
+# Enhanced diagnostic compiler flags for helpful error messages and tracing redefinitions
+if (CMAKE_C_COMPILER_ID MATCHES "GNU|Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(
+        -fdiagnostics-color=always        # Preserve colors in compiler messages
+        -fmacro-backtrace-limit=0         # Trace through macro expansions to pinpoint initial definitions
+        -fdiagnostics-show-option        # Show compiler flags associated with errors/warnings
+    )
+    if (CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        add_compile_options(
+            -fdiagnostics-show-template-tree
+        )
+    endif()
+elseif (MSVC)
+    add_compile_options(/diagnostics:caret)
+endif()
+
+# Enable CMake message context scopes in trace outputs
+set(CMAKE_MESSAGE_CONTEXT_SHOW ON)
 
 # Define the build type
 if(NOT CMAKE_BUILD_TYPE)

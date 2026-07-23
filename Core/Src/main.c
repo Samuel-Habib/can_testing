@@ -34,6 +34,7 @@
 #include "stm32h7xx_hal_fdcan.h"
 #include "stm32h7xx_hal_gpio.h"
 #include "stm32h7xx_hal_uart.h"
+#include "stm32h7xx_it.h"
 #include "task.h"
 #include <limits.h>
 #include <math.h>
@@ -73,46 +74,50 @@ DMA_HandleTypeDef hdma_usart1_rx;
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
-  .name = "defaultTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+    .name = "defaultTask",
+    .stack_size = 128 * 4,
+    .priority = (osPriority_t)osPriorityNormal,
 };
 /* Definitions for logging */
 osThreadId_t loggingHandle;
 const osThreadAttr_t logging_attributes = {
-  .name = "logging",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+    .name = "logging",
+    .stack_size = 128 * 4,
+    .priority = (osPriority_t)osPriorityLow,
 };
 /* Definitions for battery */
 osThreadId_t batteryHandle;
 const osThreadAttr_t battery_attributes = {
-  .name = "battery",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityRealtime,
+    .name = "battery",
+    .stack_size = 128 * 4,
+    .priority = (osPriority_t)osPriorityRealtime,
 };
 /* Definitions for wifi */
 osThreadId_t wifiHandle;
 const osThreadAttr_t wifi_attributes = {
-  .name = "wifi",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityBelowNormal,
+    .name = "wifi",
+    .stack_size = 128 * 4,
+    .priority = (osPriority_t)osPriorityBelowNormal,
 };
 /* Definitions for watchdog */
 osThreadId_t watchdogHandle;
 const osThreadAttr_t watchdog_attributes = {
-  .name = "watchdog",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+    .name = "watchdog",
+    .stack_size = 128 * 4,
+    .priority = (osPriority_t)osPriorityLow,
 };
 /* Definitions for can_handler */
 osThreadId_t can_handlerHandle;
 const osThreadAttr_t can_handler_attributes = {
-  .name = "can_handler",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+    .name = "can_handler",
+    .stack_size = 128 * 4,
+    .priority = (osPriority_t)osPriorityLow,
 };
 /* USER CODE BEGIN PV */
+
+char howMany[128];
+osStatus_t status;
+char buf[128];
 uint32_t riemann_sum_total = 0;
 volatile unsigned int current_sensor_readings[ADC_CURRENT_SAMPLE_COUNT];
 volatile uint32_t overcurrent_samples_count = 0;
@@ -158,19 +163,20 @@ static inline uint32_t square(int32_t a) { return a * a; }
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
-int main(void)
-{
-
+ * @brief  The application entry point.
+ * @retval int
+ */
+int main(void) {
   /* USER CODE BEGIN 1 */
-
+  long ispr = __get_IPSR();
+  snprintf(buf, sizeof(buf), "(IPSR=%lu)\r\n", ispr);
+  HAL_UART_Transmit(&huart1, (uint8_t *)buf, strlen(buf), 1000);
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick.
+   */
   HAL_Init();
 
   /* USER CODE BEGIN Init */
@@ -254,8 +260,7 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_QUEUES */
 
-  xLogQueue = xQueueCreate(30, sizeof(char) * MAX_MESSAGE_LEN);
-
+  xLogQueue = xQueueCreate(10, sizeof(char) * MAX_MESSAGE_LEN);
   // try this later, right now focus on implementing a gatekeeper with a
   // regular queue
   //  static MessageBufferHandle_t xControlMessageBuffer;
@@ -266,7 +271,8 @@ int main(void)
 
   /* Create the thread(s) */
   /* creation of defaultTask */
-  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+  defaultTaskHandle =
+      osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* creation of logging */
   loggingHandle = osThreadNew(StartTask02, NULL, &logging_attributes);
@@ -292,20 +298,23 @@ int main(void)
   /* USER CODE END RTOS_EVENTS */
 
   /* Start scheduler */
-  osKernelStart();
+  // this isn't in cmiss?
+  SysTick->CTRL = 0;
+  SysTick->VAL = 0;
+  SCB->ICSR |= SCB_ICSR_PENDSTCLR_Msk;
+  __HAL_DBGMCU_FREEZE_TIM1();
+  status = osKernelStart();
 
   /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1) {
-    uint32_t active_isr = __get_IPSR();
-    char buf[128];
-    snprintf(buf, sizeof(buf), "%d \r \n", active_isr);
-    uint8_t while_error_message[] = "kernel ended \r \n";
-    HAL_UART_Transmit(&huart1, while_error_message, sizeof(while_error_message),
-                      1000);
-    HAL_UART_Transmit(&huart1, buf, sizeof(buf), 1000);
+
+    // snprintf(buf, sizeof(buf), "Kernel start returned: 0x%X (IPSR=%lu)\r\n",
+    //        status, __get_IPSR());
+    // HAL_UART_Transmit(&huart1, (uint8_t *)buf, strlen(buf), 1000);
+    // HAL_Delay(1000);
 
     /* USER CODE END WHILE */
 
@@ -315,28 +324,29 @@ int main(void)
 }
 
 /**
-  * @brief System Clock Configuration
-  * @retval None
-  */
-void SystemClock_Config(void)
-{
+ * @brief System Clock Configuration
+ * @retval None
+ */
+void SystemClock_Config(void) {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
   /** Supply configuration update enable
-  */
+   */
   HAL_PWREx_ConfigSupply(PWR_LDO_SUPPLY);
 
   /** Configure the main internal regulator output voltage
-  */
+   */
   __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
 
-  while(!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
+  while (!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {
+  }
 
   /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_LSI;
+   * in the RCC_OscInitTypeDef structure.
+   */
+  RCC_OscInitStruct.OscillatorType =
+      RCC_OSCILLATORTYPE_HSI | RCC_OSCILLATORTYPE_LSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_DIV1;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.LSIState = RCC_LSI_ON;
@@ -350,16 +360,15 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLRGE = RCC_PLL1VCIRANGE_3;
   RCC_OscInitStruct.PLL.PLLVCOSEL = RCC_PLL1VCOWIDE;
   RCC_OscInitStruct.PLL.PLLFRACN = 0;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
     Error_Handler();
   }
 
   /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2
-                              |RCC_CLOCKTYPE_D3PCLK1|RCC_CLOCKTYPE_D1PCLK1;
+   */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK |
+                                RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2 |
+                                RCC_CLOCKTYPE_D3PCLK1 | RCC_CLOCKTYPE_D1PCLK1;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.SYSCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_HCLK_DIV1;
@@ -368,19 +377,17 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV4;
   RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV2;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_3) != HAL_OK)
-  {
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_3) != HAL_OK) {
     Error_Handler();
   }
 }
 
 /**
-  * @brief ADC1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_ADC1_Init(void)
-{
+ * @brief ADC1 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_ADC1_Init(void) {
 
   /* USER CODE BEGIN ADC1_Init 0 */
 
@@ -395,7 +402,7 @@ static void MX_ADC1_Init(void)
   /* USER CODE END ADC1_Init 1 */
 
   /** Common config
-  */
+   */
   hadc1.Instance = ADC1;
   hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV2;
   hadc1.Init.Resolution = ADC_RESOLUTION_16B;
@@ -412,34 +419,31 @@ static void MX_ADC1_Init(void)
   hadc1.Init.LeftBitShift = ADC_LEFTBITSHIFT_NONE;
   hadc1.Init.OversamplingMode = DISABLE;
   hadc1.Init.Oversampling.Ratio = 1;
-  if (HAL_ADC_Init(&hadc1) != HAL_OK)
-  {
+  if (HAL_ADC_Init(&hadc1) != HAL_OK) {
     Error_Handler();
   }
 
   /** Configure the ADC multi-mode
-  */
+   */
   multimode.Mode = ADC_MODE_INDEPENDENT;
-  if (HAL_ADCEx_MultiModeConfigChannel(&hadc1, &multimode) != HAL_OK)
-  {
+  if (HAL_ADCEx_MultiModeConfigChannel(&hadc1, &multimode) != HAL_OK) {
     Error_Handler();
   }
 
   /** Configure Analog WatchDog 1
-  */
+   */
   AnalogWDGConfig.WatchdogNumber = ADC_ANALOGWATCHDOG_1;
   AnalogWDGConfig.WatchdogMode = ADC_ANALOGWATCHDOG_SINGLE_REG;
   AnalogWDGConfig.Channel = ADC_CHANNEL_2;
   AnalogWDGConfig.ITMode = ENABLE;
   AnalogWDGConfig.HighThreshold = 400;
   AnalogWDGConfig.LowThreshold = 0;
-  if (HAL_ADC_AnalogWDGConfig(&hadc1, &AnalogWDGConfig) != HAL_OK)
-  {
+  if (HAL_ADC_AnalogWDGConfig(&hadc1, &AnalogWDGConfig) != HAL_OK) {
     Error_Handler();
   }
 
   /** Configure Regular Channel
-  */
+   */
   sConfig.Channel = ADC_CHANNEL_2;
   sConfig.Rank = ADC_REGULAR_RANK_1;
   sConfig.SamplingTime = ADC_SAMPLETIME_16CYCLES_5;
@@ -447,23 +451,20 @@ static void MX_ADC1_Init(void)
   sConfig.OffsetNumber = ADC_OFFSET_NONE;
   sConfig.Offset = 0;
   sConfig.OffsetSignedSaturation = DISABLE;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) {
     Error_Handler();
   }
   /* USER CODE BEGIN ADC1_Init 2 */
 
   /* USER CODE END ADC1_Init 2 */
-
 }
 
 /**
-  * @brief FDCAN1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_FDCAN1_Init(void)
-{
+ * @brief FDCAN1 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_FDCAN1_Init(void) {
 
   /* USER CODE BEGIN FDCAN1_Init 0 */
 
@@ -500,23 +501,20 @@ static void MX_FDCAN1_Init(void)
   hfdcan1.Init.TxFifoQueueElmtsNbr = 0;
   hfdcan1.Init.TxFifoQueueMode = FDCAN_TX_FIFO_OPERATION;
   hfdcan1.Init.TxElmtSize = FDCAN_DATA_BYTES_8;
-  if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK)
-  {
+  if (HAL_FDCAN_Init(&hfdcan1) != HAL_OK) {
     Error_Handler();
   }
   /* USER CODE BEGIN FDCAN1_Init 2 */
 
   /* USER CODE END FDCAN1_Init 2 */
-
 }
 
 /**
-  * @brief IWDG1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_IWDG1_Init(void)
-{
+ * @brief IWDG1 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_IWDG1_Init(void) {
 
   /* USER CODE BEGIN IWDG1_Init 0 */
 
@@ -529,23 +527,20 @@ static void MX_IWDG1_Init(void)
   hiwdg1.Init.Prescaler = IWDG_PRESCALER_4;
   hiwdg1.Init.Window = 4095;
   hiwdg1.Init.Reload = 4095;
-  if (HAL_IWDG_Init(&hiwdg1) != HAL_OK)
-  {
+  if (HAL_IWDG_Init(&hiwdg1) != HAL_OK) {
     Error_Handler();
   }
   /* USER CODE BEGIN IWDG1_Init 2 */
 
   /* USER CODE END IWDG1_Init 2 */
-
 }
 
 /**
-  * @brief TIM2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_TIM2_Init(void)
-{
+ * @brief TIM2 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_TIM2_Init(void) {
 
   /* USER CODE BEGIN TIM2_Init 0 */
 
@@ -563,34 +558,29 @@ static void MX_TIM2_Init(void)
   htim2.Init.Period = 159999;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
-  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
-  {
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK) {
     Error_Handler();
   }
   sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
-  {
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK) {
     Error_Handler();
   }
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
-  {
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK) {
     Error_Handler();
   }
   /* USER CODE BEGIN TIM2_Init 2 */
 
   /* USER CODE END TIM2_Init 2 */
-
 }
 
 /**
-  * @brief USART1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART1_UART_Init(void)
-{
+ * @brief USART1 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_USART1_UART_Init(void) {
 
   /* USER CODE BEGIN USART1_Init 0 */
 
@@ -610,33 +600,29 @@ static void MX_USART1_UART_Init(void)
   huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
   huart1.Init.ClockPrescaler = UART_PRESCALER_DIV1;
   huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart1) != HAL_OK)
-  {
+  if (HAL_UART_Init(&huart1) != HAL_OK) {
     Error_Handler();
   }
-  if (HAL_UARTEx_SetTxFifoThreshold(&huart1, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
-  {
+  if (HAL_UARTEx_SetTxFifoThreshold(&huart1, UART_TXFIFO_THRESHOLD_1_8) !=
+      HAL_OK) {
     Error_Handler();
   }
-  if (HAL_UARTEx_SetRxFifoThreshold(&huart1, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
-  {
+  if (HAL_UARTEx_SetRxFifoThreshold(&huart1, UART_RXFIFO_THRESHOLD_1_8) !=
+      HAL_OK) {
     Error_Handler();
   }
-  if (HAL_UARTEx_DisableFifoMode(&huart1) != HAL_OK)
-  {
+  if (HAL_UARTEx_DisableFifoMode(&huart1) != HAL_OK) {
     Error_Handler();
   }
   /* USER CODE BEGIN USART1_Init 2 */
 
   /* USER CODE END USART1_Init 2 */
-
 }
 
 /**
-  * Enable DMA controller clock
-  */
-static void MX_DMA_Init(void)
-{
+ * Enable DMA controller clock
+ */
+static void MX_DMA_Init(void) {
 
   /* DMA controller clock enable */
   __HAL_RCC_DMA1_CLK_ENABLE();
@@ -648,16 +634,14 @@ static void MX_DMA_Init(void)
   /* DMA1_Stream1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
-
 }
 
 /**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_GPIO_Init(void)
-{
+ * @brief GPIO Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_GPIO_Init(void) {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   /* USER CODE BEGIN MX_GPIO_Init_1 */
 
@@ -671,7 +655,8 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(HIGH_VOLTAGE_DISCONNECT_GPIO_Port, HIGH_VOLTAGE_DISCONNECT_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(HIGH_VOLTAGE_DISCONNECT_GPIO_Port,
+                    HIGH_VOLTAGE_DISCONNECT_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : HIGH_VOLTAGE_DISCONNECT_Pin */
   GPIO_InitStruct.Pin = HIGH_VOLTAGE_DISCONNECT_Pin;
@@ -696,8 +681,7 @@ static void MX_GPIO_Init(void)
  * @retval None
  */
 /* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void *argument)
-{
+void StartDefaultTask(void *argument) {
   /* USER CODE BEGIN 5 */
 
   static const uint8_t tx_data_bufer[] = "x\r\n";
@@ -718,13 +702,6 @@ void StartDefaultTask(void *argument)
     can_tx(&hfdcan1, tx_data_bufer);
 
     osDelay(200);
-    // HAL_UART_Transmit_IT(&huart1, data_bufer, sizeof(msg));
-    //  HAL_UART_Transmit_DMA(&huart1, data_bufer, sizeof(msg));
-    //          UART_Start_Receive_DMA(&huart1, uint8_t *pData, uint16_t Size)
-    //
-    //      whats the differnce between using dma for uart and an interrupt
-    //   HAL_UART_Transmit_IT(UART_HandleTypeDef *huart, const uint8_t *pData,
-    //   uint16_t Size)
     HAL_UART_Transmit(&huart1, rx_data_bufer, sizeof(rx_data_bufer), 1000);
     osDelay(200);
   }
@@ -738,47 +715,54 @@ void StartDefaultTask(void *argument)
  * @retval None
  */
 /* USER CODE END Header_StartTask02 */
-void StartTask02(void *argument)
-{
+void StartTask02(void *argument) {
   /* USER CODE BEGIN StartTask02 */
   /* Infinite loop */
   // 2222
   char noMessages[19] = "No New Messages \r \n";
+  char debugBuf[128];
   char data[128] = {0};
-  // xSemaphoreGive(testSemaphore);
-
-  // note use snprintf_()
+  xQueueReset(xLogQueue);
   for (;;) {
     // right now the strategy if it's full, is to just delay
-    xQueueReceive(xLogQueue, &data, pdMS_TO_TICKS(2000));
-    if (uxQueueMessagesWaiting(xLogQueue) == 0) {
-      // how would it be full if there are no mesages in the queue?? lol
+    BaseType_t received = xQueueReceive(xLogQueue, &data, pdMS_TO_TICKS(2000));
+    snprintf(
+        debugBuf, sizeof(debugBuf),
+        "received: %lu  also this is running before and after uart_buffer\r \n",
+        received);
+    HAL_UART_Transmit(&huart1, (uint8_t *)debugBuf, sizeof(debugBuf), 1000);
+    if (!uart_buffer_full) {
+      // will send if uart_buffer_full is not true and it doesn't become true
+      // when the function is first called
       taskENTER_CRITICAL();
       buffer_total += MAX_MESSAGE_LEN;
       taskEXIT_CRITICAL();
-      if (log_module(noMessages) == -1) {
+
+      if (log_module(data) == -1) {
         osDelay(200);
       }
-    } else {
-      if (!uart_buffer_full) {
-
-        // will send if uart_buffer_full is not true and it doesn't become true
-        // when the function is first called
-        taskENTER_CRITICAL();
-        buffer_total += MAX_MESSAGE_LEN;
-        taskEXIT_CRITICAL();
-
-        if (log_module(data) == -1) {
-          osDelay(200);
-        }
-
-      } else {
-        osDelay(200);
-      }
+      DMA1_Stream0_IRQHandler();
     }
-
+    /* } */
+    /* else { */
+    /*   osDelay(200); */
+    /* } */
+    //}
+    HAL_Delay(100);
+    snprintf(howMany, sizeof(howMany),
+             "there are %lu items in the queue and %d bytes in the buffer, and "
+             "buffer_total: %d \r \n",
+             uxQueueMessagesWaiting(xLogQueue), sizeof(uart_buffer),
+             buffer_total);
+    HAL_UART_Transmit(&huart1, (uint8_t *)howMany, sizeof(howMany), 1000);
+    // why does it blurt out everything in the queue at once instead of one by
+    // one
+    //    HAL_UART_Transmit(&huart1, (uint8_t *)data, sizeof(data), 1000);
+    // ^^ 5 is trapped here... why?
+    HAL_UART_Transmit(&huart1, (uint8_t *)debugBuf, sizeof(debugBuf), 1000);
     HAL_UART_Transmit(&huart1, uart_buffer, sizeof(uart_buffer), 1000);
-    HAL_Delay(200);
+    HAL_UART_Transmit(&huart1, (uint8_t *)debugBuf, sizeof(debugBuf), 1000);
+    // HAL_Delay(200);
     // can you notify a task from another task?
     // in reality uart_buffer = data;
     // uart_buffer = "hello, testing logging \r \n";
@@ -798,8 +782,7 @@ void StartTask02(void *argument)
  * @retval None
  */
 /* USER CODE END Header_StartTask03 */
-void StartTask03(void *argument)
-{
+void StartTask03(void *argument) {
   /* USER CODE BEGIN StartTask03 */
   /* Infinite loop */
   // 3333
@@ -851,30 +834,39 @@ void StartTask03(void *argument)
  * @retval None
  */
 /* USER CODE END Header_StartTask04 */
-void StartTask04(void *argument)
-{
+void StartTask04(void *argument) {
   /* USER CODE BEGIN StartTask04 */
   /* Infinite loop */
   // wifi11111
+
+  xQueueReset(xLogQueue);
   for (;;) {
-    uint8_t task4str[60] = "task 4 enterd \r \n";
+    osDelay(10);
+    uint8_t task4str[60] = "========== task 4 enterd  =========\r \n";
     HAL_UART_Transmit(&huart1, task4str, sizeof(task4str), 1000);
     char sampleData[128] = "Sample data \r \n";
     char str1[128] = "string1 \r \n";
     char str2[128] = "string2 \r \n";
     char str3[128] = "string3 \r \n";
     char str4[128] = "string4 \r \n";
-    char str5[128] = "string5 \r \n";
+    char str5[128] = {0};
 
-    if (uxQueueMessagesWaiting(xLogQueue) == 0) {
-      xQueueSend(xLogQueue, (void *)&sampleData, portMAX_DELAY);
-      xQueueSend(xLogQueue, (void *)&str1, portMAX_DELAY);
-      xQueueSend(xLogQueue, (void *)&str2, portMAX_DELAY);
-      xQueueSend(xLogQueue, (void *)&str3, portMAX_DELAY);
-      xQueueSend(xLogQueue, (void *)&str4, portMAX_DELAY);
-      xQueueSend(xLogQueue, (void *)&str5, portMAX_DELAY);
-    }
-    // xSemaphoreTake(testSemaphore, (TickType_t)100000);
+    /* snprintf(howMany, sizeof(howMany), "there are %lu items in the queue \r
+     * \n", */
+    /*          uxQueueMessagesWaiting(xLogQueue)); */
+    /* HAL_UART_Transmit(&huart1, (uint8_t *)howMany, sizeof(howMany), 1000);
+     */
+    // ^^ this cuases a hard fault... why??
+
+    // if (uxQueueMessagesWaiting(xLogQueue) == 0) {
+    /* xQueueSend(xLogQueue, (void *)&sampleData, portMAX_DELAY); */
+    /* xQueueSend(xLogQueue, (void *)&str1, portMAX_DELAY); */
+    /* xQueueSend(xLogQueue, (void *)&str2, portMAX_DELAY); */
+    /* xQueueSend(xLogQueue, (void *)&str3, portMAX_DELAY); */
+    /* xQueueSend(xLogQueue, (void *)&str4, portMAX_DELAY); */
+    xQueueSend(xLogQueue, (void *)&str5, portMAX_DELAY);
+    //}
+    //    xSemaphoreTake(testSemaphore, (TickType_t)100000);
     osDelay(10000);
   }
   /* USER CODE END StartTask04 */
@@ -887,8 +879,7 @@ void StartTask04(void *argument)
  * @retval None
  */
 /* USER CODE END Header_StartTask05 */
-void StartTask05(void *argument)
-{
+void StartTask05(void *argument) {
   /* USER CODE BEGIN StartTask05 */
   /* Infinite loop */
   for (;;) {
@@ -905,34 +896,33 @@ void StartTask05(void *argument)
  * @retval None
  */
 /* USER CODE END Header_StartTask06 */
-void StartTask06(void *argument)
-{
+void StartTask06(void *argument) {
   /* USER CODE BEGIN StartTask06 */
   /* Infinite loop */
   // can6666
   char *testString = "this is a test of the char uart buffer scheme";
+  xQueueReset(xLogQueue);
   for (;;) {
-    xQueueSendToBack(xLogQueue, testString, 0);
-    osDelay(1);
+
+    osDelay(100);
+    // xQueueSendToBack(xLogQueue, testString, 0);
   }
   /* USER CODE END StartTask06 */
 }
 
 /**
-  * @brief  Period elapsed callback in non blocking mode
-  * @note   This function is called  when TIM1 interrupt took place, inside
-  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
-  * a global variable "uwTick" used as application time base.
-  * @param  htim : TIM handle
-  * @retval None
-  */
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
+ * @brief  Period elapsed callback in non blocking mode
+ * @note   This function is called  when TIM1 interrupt took place, inside
+ * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+ * a global variable "uwTick" used as application time base.
+ * @param  htim : TIM handle
+ * @retval None
+ */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
   /* USER CODE BEGIN Callback 0 */
 
   /* USER CODE END Callback 0 */
-  if (htim->Instance == TIM1)
-  {
+  if (htim->Instance == TIM1) {
     HAL_IncTick();
   }
   /* USER CODE BEGIN Callback 1 */
@@ -941,11 +931,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 }
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
-void Error_Handler(void)
-{
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
+void Error_Handler(void) {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state
    */
@@ -956,14 +945,13 @@ void Error_Handler(void)
 }
 #ifdef USE_FULL_ASSERT
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
-void assert_failed(uint8_t *file, uint32_t line)
-{
+ * @brief  Reports the name of the source file and the source line number
+ *         where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
+void assert_failed(uint8_t *file, uint32_t line) {
   /* USER CODE BEGIN 6 */
   /* USER CODE END 6 */
 }
