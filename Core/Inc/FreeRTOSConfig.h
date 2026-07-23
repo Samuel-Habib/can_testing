@@ -47,6 +47,7 @@
 
 /* USER CODE BEGIN Includes */
 /* Section where include file can be added */
+#include "SEGGER_SYSVIEW_FreeRTOS.h"
 /* USER CODE END Includes */
 
 /* Ensure definitions are only used by the compiler, and not by the assembler.
@@ -74,6 +75,7 @@ extern uint32_t SystemCoreClock;
 #define configTOTAL_HEAP_SIZE ((size_t)32768)
 #define configMAX_TASK_NAME_LEN (16)
 #define configUSE_TRACE_FACILITY 1
+#define configUSE_STATS_FORMATTING_FUNCTIONS 1
 #define configUSE_16_BIT_TICKS 0
 #define configUSE_MUTEXES 1
 #define configQUEUE_REGISTRY_SIZE 8

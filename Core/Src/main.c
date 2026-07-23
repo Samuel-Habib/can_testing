@@ -22,6 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "SEGGER_SYSVIEW_FreeRTOS.h"
 #include "can.h"
 #include "cmsis_os2.h"
 #include "logging.h"
@@ -39,6 +40,7 @@
 #include <limits.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 /* USER CODE END Includes */
@@ -299,10 +301,10 @@ int main(void) {
 
   /* Start scheduler */
   // this isn't in cmiss?
-  SysTick->CTRL = 0;
-  SysTick->VAL = 0;
-  SCB->ICSR |= SCB_ICSR_PENDSTCLR_Msk;
-  __HAL_DBGMCU_FREEZE_TIM1();
+  /* SysTick->CTRL = 0; */
+  /* SysTick->VAL = 0; */
+  /* SCB->ICSR |= SCB_ICSR_PENDSTCLR_Msk; */
+  /* __HAL_DBGMCU_FREEZE_TIM1(); */
   status = osKernelStart();
 
   /* We should never get here as control is now taken by the scheduler */
@@ -717,58 +719,33 @@ void StartDefaultTask(void *argument) {
 /* USER CODE END Header_StartTask02 */
 void StartTask02(void *argument) {
   /* USER CODE BEGIN StartTask02 */
-  /* Infinite loop */
-  // 2222
+  // gatekeeper task
+  // t2222
+
   char noMessages[19] = "No New Messages \r \n";
   char debugBuf[128];
   char data[128] = {0};
   xQueueReset(xLogQueue);
   for (;;) {
-    // right now the strategy if it's full, is to just delay
-    BaseType_t received = xQueueReceive(xLogQueue, &data, pdMS_TO_TICKS(2000));
-    snprintf(
-        debugBuf, sizeof(debugBuf),
-        "received: %lu  also this is running before and after uart_buffer\r \n",
-        received);
-    HAL_UART_Transmit(&huart1, (uint8_t *)debugBuf, sizeof(debugBuf), 1000);
-    if (!uart_buffer_full) {
-      // will send if uart_buffer_full is not true and it doesn't become true
-      // when the function is first called
+
+    xQueueReceive(xLogQueue, &data, pdMS_TO_TICKS(2000));
+
+    if (!uart_buffer_full && uxQueueMessagesWaiting(xLogQueue) > 0) {
       taskENTER_CRITICAL();
       buffer_total += MAX_MESSAGE_LEN;
       taskEXIT_CRITICAL();
-
       if (log_module(data) == -1) {
-        osDelay(200);
+        osDelay(300);
       }
-      DMA1_Stream0_IRQHandler();
     }
-    /* } */
-    /* else { */
-    /*   osDelay(200); */
-    /* } */
-    //}
-    HAL_Delay(100);
+
     snprintf(howMany, sizeof(howMany),
              "there are %lu items in the queue and %d bytes in the buffer, and "
              "buffer_total: %d \r \n",
              uxQueueMessagesWaiting(xLogQueue), sizeof(uart_buffer),
              buffer_total);
     HAL_UART_Transmit(&huart1, (uint8_t *)howMany, sizeof(howMany), 1000);
-    // why does it blurt out everything in the queue at once instead of one by
-    // one
-    //    HAL_UART_Transmit(&huart1, (uint8_t *)data, sizeof(data), 1000);
-    // ^^ 5 is trapped here... why?
-    HAL_UART_Transmit(&huart1, (uint8_t *)debugBuf, sizeof(debugBuf), 1000);
     HAL_UART_Transmit(&huart1, uart_buffer, sizeof(uart_buffer), 1000);
-    HAL_UART_Transmit(&huart1, (uint8_t *)debugBuf, sizeof(debugBuf), 1000);
-    // HAL_Delay(200);
-    // can you notify a task from another task?
-    // in reality uart_buffer = data;
-    // uart_buffer = "hello, testing logging \r \n";
-
-    //    HAL_UART_Receive_DMA(&huart1, );
-    //    set up dma stream 2 for usart2 tx
 
     osDelay(1);
   }
@@ -867,7 +844,9 @@ void StartTask04(void *argument) {
     xQueueSend(xLogQueue, (void *)&str5, portMAX_DELAY);
     //}
     //    xSemaphoreTake(testSemaphore, (TickType_t)100000);
-    osDelay(10000);
+    // osDelay(10000);
+    HAL_Delay(1000);
+    // vTaskDelete(NULL);
   }
   /* USER CODE END StartTask04 */
 }

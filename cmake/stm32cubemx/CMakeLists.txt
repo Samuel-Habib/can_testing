@@ -19,6 +19,7 @@ set(MX_Include_Dirs
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/CMSIS/Device/ST/STM32H7xx/Include
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Drivers/CMSIS/Include
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/SEGGER/Inc
 )
 
 # STM32CubeMX generated application sources
@@ -76,6 +77,11 @@ set(FreeRTOS_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/SEGGER/Src/SEGGER_RTT.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/SEGGER/Src/SEGGER_RTT_printf.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/SEGGER/Src/SEGGER_SYSVIEW.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/SEGGER/Src/SEGGER_SYSVIEW_FreeRTOS.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Middlewares/Third_Party/SEGGER/Src/SEGGER_SYSVIEW_Config_FreeRTOS.c
 )
 
 # Link directories setup

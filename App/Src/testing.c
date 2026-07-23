@@ -25,7 +25,8 @@ int adc_testing() {
   assert(ADC1->DR = CURRENT_RATING);
 
   ADC_IRQHandler();
-  DMA1_Stream1_IRQHandler();
+  DMA1_Stream0_IRQHandler(); // this is for logging
+  DMA1_Stream1_IRQHandler(); // this is for ADC
   return 0;
 }
 
