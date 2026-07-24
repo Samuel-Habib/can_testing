@@ -201,6 +201,8 @@ int main(void) {
   MX_ADC1_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
+  SEGGER_SYSVIEW_Conf();
+  SEGGER_SYSVIEW_Start();
 
   const FDCAN_FilterTypeDef Can_ConfigFilter = {
       .IdType = FDCAN_STANDARD_ID,

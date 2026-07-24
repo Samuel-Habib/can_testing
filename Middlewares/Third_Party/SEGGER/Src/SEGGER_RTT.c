@@ -889,66 +889,9 @@ void SEGGER_RTT_WriteWithOverwriteNoLock(unsigned BufferIndex, const void* pBuff
 *        Either by calling SEGGER_RTT_Init() or calling another RTT API function first.
 */
 #if (RTT_USE_ASM == 0)
+__attribute__((used, noinline))
 unsigned SEGGER_RTT_WriteSkipNoLock(unsigned BufferIndex, const void* pBuffer, unsigned NumBytes) {
-  const char*           pData;
-  SEGGER_RTT_BUFFER_UP* pRing;
-  unsigned              Avail;
-  unsigned              RdOff;
-  unsigned              WrOff;
-  unsigned              Rem;
-  volatile char*        pDst;
-  //
-  // Cases:
-  //   1) RdOff <= WrOff => Space until wrap-around is sufficient
-  //   2) RdOff <= WrOff => Space after wrap-around needed (copy in 2 chunks)
-  //   3) RdOff <  WrOff => No space in buf
-  //   4) RdOff >  WrOff => Space is sufficient
-  //   5) RdOff >  WrOff => No space in buf
-  //
-  // 1) is the most common case for large buffers and assuming that J-Link reads the data fast enough
-  //
-  pData = (const char *)pBuffer;
-  pRing = (SEGGER_RTT_BUFFER_UP*)((uintptr_t)&_SEGGER_RTT.aUp[BufferIndex] + SEGGER_RTT_UNCACHED_OFF);  // Access uncached to make sure we see changes made by the J-Link side and all of our changes go into HW directly
-  RdOff = pRing->RdOff;
-  WrOff = pRing->WrOff;
-  pDst = (pRing->pBuffer + WrOff) + SEGGER_RTT_UNCACHED_OFF;
-  if (RdOff <= WrOff) {                                 // Case 1), 2) or 3)
-    Avail = pRing->SizeOfBuffer - WrOff - 1u;           // Space until wrap-around (assume 1 byte not usable for case that RdOff == 0)
-    if (Avail >= NumBytes) {                            // Case 1)?
-      memcpy((void*)pDst, pData, NumBytes);
-      RTT__DMB();                     // Force data write to be complete before writing the <WrOff>, in case CPU is allowed to change the order of memory accesses
-      pRing->WrOff = WrOff + NumBytes;
-      return 1;
-    }
-    Avail += RdOff;                                     // Space incl. wrap-around
-    if (Avail >= NumBytes) {                            // Case 2? => If not, we have case 3) (does not fit)
-      Rem = pRing->SizeOfBuffer - WrOff;                // Space until end of buffer
-      memcpy((void*)pDst, pData, Rem);                  // Copy 1st chunk
-      NumBytes -= Rem;
-      //
-      // Special case: First check that assumed RdOff == 0 calculated that last element before wrap-around could not be used
-      // But 2nd check (considering space until wrap-around and until RdOff) revealed that RdOff is not 0, so we can use the last element
-      // In this case, we may use a copy straight until buffer end anyway without needing to copy 2 chunks
-      // Therefore, check if 2nd memcpy is necessary at all
-      //
-      if (NumBytes) {
-        pDst = pRing->pBuffer + SEGGER_RTT_UNCACHED_OFF;
-        memcpy((void*)pDst, pData + Rem, NumBytes);
-      }
-      RTT__DMB();                     // Force data write to be complete before writing the <WrOff>, in case CPU is allowed to change the order of memory accesses
-      pRing->WrOff = NumBytes;
-      return 1;
-    }
-  } else {                                             // Potential case 4)
-    Avail = RdOff - WrOff - 1u;
-    if (Avail >= NumBytes) {                           // Case 4)? => If not, we have case 5) (does not fit)
-      memcpy((void*)pDst, pData, NumBytes);
-      RTT__DMB();                     // Force data write to be complete before writing the <WrOff>, in case CPU is allowed to change the order of memory accesses
-      pRing->WrOff = WrOff + NumBytes;
-      return 1;
-    }
-  }
-  return 0;     // No space in buffer
+  return SEGGER_RTT_WriteNoLock(BufferIndex, pBuffer, NumBytes);
 }
 #endif
 
@@ -1055,6 +998,7 @@ unsigned SEGGER_RTT_WriteDownBufferNoLock(unsigned BufferIndex, const void* pBuf
 *        and may only be called after RTT has been initialized.
 *        Either by calling SEGGER_RTT_Init() or calling another RTT API function first.
 */
+__attribute__((used, noinline))
 unsigned SEGGER_RTT_WriteNoLock(unsigned BufferIndex, const void* pBuffer, unsigned NumBytes) {
   unsigned              Status;
   unsigned              Avail;
@@ -1443,6 +1387,7 @@ int SEGGER_RTT_WaitKey(void) {
 *  Notes
 *    (1) This function is only specified for accesses to RTT buffer 0
 */
+__attribute__((used, noinline))
 int SEGGER_RTT_HasKey(void) {
   SEGGER_RTT_BUFFER_DOWN* pRing;
   unsigned RdOff;
@@ -1471,6 +1416,7 @@ int SEGGER_RTT_HasKey(void) {
 *  !=0:  Data in buffer
 *
 */
+__attribute__((used, noinline))
 unsigned SEGGER_RTT_HasData(unsigned BufferIndex) {
   SEGGER_RTT_BUFFER_DOWN* pRing;
   unsigned                v;

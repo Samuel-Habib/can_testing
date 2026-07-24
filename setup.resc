@@ -3,7 +3,7 @@ logFile @/root/dev/ru-solar/can_testing/logs/renode.log
 
 # ============================ GLOBAL SETUP ============================
 emulation CreateUartPtyTerminal "term" "/tmp/uart" true
-emulation CreateServerSocketTerminal 19021 "rtt" true
+emulation CreateServerSocketTerminal 19021 "rtt" false
 emulation CreateCANHub "canHub"
 
 # ============================ MACHINE 0 SETUP ============================
@@ -36,7 +36,7 @@ macro reset
     cpu VectorTableOffset 0x08000000
     cpu SP 0x20020000
     cpu PerformanceInMips 100
-    setup_segger_rtt segger_rtt false false true false false
+    setup_segger_rtt segger_rtt true true true true true
 """
 
 # ============================ MACHINE 1 SETUP ============================
