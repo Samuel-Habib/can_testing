@@ -85,3 +85,16 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 
     # Add user defined libraries
 )
+
+# OpenOCD Flashing configuration and targets
+set(OPENOCD "openocd" CACHE STRING "Path to OpenOCD executable")
+set(OPENOCD_INTERFACE "interface/stlink.cfg" CACHE STRING "OpenOCD interface configuration file")
+set(OPENOCD_TARGET "target/stm32h7x.cfg" CACHE STRING "OpenOCD target configuration file")
+
+add_custom_target(flash
+    COMMAND ${OPENOCD} -f ${OPENOCD_INTERFACE} -f ${OPENOCD_TARGET} -c "program $<TARGET_FILE:${CMAKE_PROJECT_NAME}> verify reset exit"
+    DEPENDS ${CMAKE_PROJECT_NAME}
+    COMMENT "Flashing ${CMAKE_PROJECT_NAME}.elf to target MCU using OpenOCD..."
+    USES_TERMINAL
+)
+add_custom_target(openocd-flash DEPENDS flash)

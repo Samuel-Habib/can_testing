@@ -88,19 +88,20 @@ if [ -n "$TMUX" ]; then
     # Return focus to the original left column
     tmux select-pane -L
     
+    # Split the left column vertically (creates left-bottom pane for GDB or Renode Trace Viewer)
+    tmux split-window -v
     if [ "$MODE" != "no-gdb" ]; then
         GDB_CMD="sleep 1.5 && gdb-multiarch -q -x gdb_init.gdb -ex 'target remote localhost:3333' -ex 'load' -ex 'layout split' -ex 'focus cmd'"
         if [ "$MODE" = "normal" ]; then
             GDB_CMD="$GDB_CMD -ex 'continue'"
         fi
         GDB_CMD="$GDB_CMD build/ru-tel.elf"
-
-        # Split the left column vertically (creates left-bottom pane)
-        tmux split-window -v
         tmux send-keys "$GDB_CMD" C-m
-        # Move focus back up to the Renode Monitor pane
-        tmux select-pane -U
+    else
+        tmux send-keys "./trace_viewer.py --trace logs/trace.log --renode-log logs/renode.log" C-m
     fi
+    # Move focus back up to the Renode Monitor pane
+    tmux select-pane -U
     
     # Execute Renode directly in the original pane (replacing the shell process)
     exec renode --disable-xwt --console setup.resc
@@ -131,19 +132,20 @@ else
     # Move focus left back to the left column
     tmux select-pane -L -t "$SESSION_NAME:VHIL"
     
+    # Split left column vertically (creates left-bottom pane for GDB or Renode Trace Viewer)
+    tmux split-window -v -t "$SESSION_NAME:VHIL"
     if [ "$MODE" != "no-gdb" ]; then
         GDB_CMD="sleep 1.5 && gdb-multiarch -q -x gdb_init.gdb -ex 'target remote localhost:3333' -ex 'load' -ex 'layout split' -ex 'focus cmd'"
         if [ "$MODE" = "normal" ]; then
             GDB_CMD="$GDB_CMD -ex 'continue'"
         fi
         GDB_CMD="$GDB_CMD build/ru-tel.elf"
-
-        # Split left column vertically (creates left-bottom pane)
-        tmux split-window -v -t "$SESSION_NAME:VHIL"
         tmux send-keys -t "$SESSION_NAME:VHIL" "$GDB_CMD" C-m
-        # Select the left-top pane (Renode Monitor) so focus is on Renode
-        tmux select-pane -U -t "$SESSION_NAME:VHIL"
+    else
+        tmux send-keys -t "$SESSION_NAME:VHIL" "./trace_viewer.py --trace logs/trace.log --renode-log logs/renode.log" C-m
     fi
+    # Select the left-top pane (Renode Monitor) so focus is on Renode
+    tmux select-pane -U -t "$SESSION_NAME:VHIL"
     
     # Create the second window "Dev"
     tmux new-window -t "$SESSION_NAME" -n "Dev"

@@ -1,9 +1,8 @@
 Clear
-logFile @/root/dev/ru-solar/can_testing/logs/renode.log
+logFile @logs/renode.log
 
 # ============================ GLOBAL SETUP ============================
 emulation CreateUartPtyTerminal "term" "/tmp/uart" true
-emulation CreateServerSocketTerminal 19021 "rtt" false
 emulation CreateCANHub "canHub"
 
 # ============================ MACHINE 0 SETUP ============================
@@ -23,20 +22,27 @@ logLevel 3 sysbus.adcM1S2
 logLevel 3 sysbus.dma1
 logLevel 3 sysbus.timer2
 logLevel 3 sysbus.fdcan1
-machine PyDevFromFile @/root/dev/ru-solar/can_testing/pwr_mock.py 0x58024800 0x400 false "pwr"
+machine PyDevFromFile @pwr_mock.py 0x58024800 0x400 false "pwr"
 connector Connect sysbus.usart1 term
 connector Connect sysbus.fdcan1 canHub
-machine CreateVirtualConsole "segger_rtt"
-connector Connect sysbus.segger_rtt rtt
-include @scripts/single-node/segger-rtt.py
+
+# Renode Built-In Tracing Setup
+sysbus.cpu CreateExecutionTracing "cpu_tracer" "/root/dev/ru-solar/ru-pdu-tel/logs/trace.log" Disassembly false false
+sysbus LogPeripheralAccess sysbus.fdcan1
+sysbus LogPeripheralAccess sysbus.usart1
+sysbus LogPeripheralAccess sysbus.adcM1S2
+sysbus LogPeripheralAccess sysbus.dma1
+sysbus LogPeripheralAccess sysbus.timer2
+sysbus LogPeripheralAccess sysbus.syscfg
+sysbus LogPeripheralAccess sysbus.rcc
+sysbus LogPeripheralAccess sysbus.pwr
 
 macro reset
 """
-    sysbus LoadELF @/root/dev/ru-solar/can_testing/build/ru-tel.elf
+    sysbus LoadELF @build/ru-tel.elf
     cpu VectorTableOffset 0x08000000
     cpu SP 0x20020000
     cpu PerformanceInMips 100
-    setup_segger_rtt segger_rtt true true true true true
 """
 
 # ============================ MACHINE 1 SETUP ============================
@@ -55,12 +61,12 @@ logLevel 3 sysbus.adcM1S2
 logLevel 3 sysbus.dma1
 logLevel 3 sysbus.timer2
 logLevel 3 sysbus.fdcan1
-machine PyDevFromFile @/root/dev/ru-solar/can_testing/pwr_mock.py 0x58024800 0x400 false "pwr"
+machine PyDevFromFile @pwr_mock.py 0x58024800 0x400 false "pwr"
 connector Connect sysbus.fdcan1 canHub
 
 macro reset
 """
-    sysbus LoadELF @/root/dev/ru-solar/can_testing/build/ru-tel.elf
+    sysbus LoadELF @build/ru-tel.elf
     cpu VectorTableOffset 0x08000000
     cpu SP 0x20020000
     cpu PerformanceInMips 100
