@@ -3,6 +3,9 @@
 # Exit on error
 set -e
 
+# Change directory to the repository root
+cd "$(dirname "$0")/../.."
+
 # Parse arguments to decide mode: normal (auto-continue), step (halted), or no-gdb, and macOS flag
 MODE="normal"
 MACOS=false
@@ -106,7 +109,7 @@ if [ -n "$TMUX" ]; then
     tmux select-pane -L
     
     if [ "$MODE" != "no-gdb" ]; then
-        GDB_CMD="sleep 1.5 && gdb-multiarch -q -x gdb_init.gdb -ex 'target remote localhost:3333' -ex 'load' -ex 'layout split' -ex 'focus cmd'"
+        GDB_CMD="sleep 1.5 && gdb-multiarch -q -x Test/Sim/gdb_init.gdb -ex 'target remote localhost:3333' -ex 'load' -ex 'layout split' -ex 'focus cmd'"
         if [ "$MODE" = "normal" ]; then
             GDB_CMD="$GDB_CMD -ex 'continue'"
         fi
@@ -120,14 +123,14 @@ if [ -n "$TMUX" ]; then
     fi
     
     # Execute Renode directly in the original pane (replacing the shell process)
-    exec renode --disable-xwt --console setup.resc
+    exec renode --disable-xwt --console Test/Sim/setup.resc
 else
     # We are not in tmux. Start a new detached session.
     SESSION_NAME="renode-vhil"
     tmux kill-session -t "$SESSION_NAME" 2>/dev/null || true
     
     # Start detached session running Renode Monitor in the first window "VHIL"
-    tmux new-session -d -s "$SESSION_NAME" -n "VHIL" "renode --disable-xwt --console setup.resc"
+    tmux new-session -d -s "$SESSION_NAME" -n "VHIL" "renode --disable-xwt --console Test/Sim/setup.resc"
     
     echo "Waiting for Renode to initialize and create /tmp/uart..."
     for i in {1..10}; do
@@ -153,7 +156,7 @@ else
     tmux select-pane -L -t "$SESSION_NAME:VHIL"
     
     if [ "$MODE" != "no-gdb" ]; then
-        GDB_CMD="sleep 1.5 && gdb-multiarch -q -x gdb_init.gdb -ex 'target remote localhost:3333' -ex 'load' -ex 'layout split' -ex 'focus cmd'"
+        GDB_CMD="sleep 1.5 && gdb-multiarch -q -x Test/Sim/gdb_init.gdb -ex 'target remote localhost:3333' -ex 'load' -ex 'layout split' -ex 'focus cmd'"
         if [ "$MODE" = "normal" ]; then
             GDB_CMD="$GDB_CMD -ex 'continue'"
         fi
