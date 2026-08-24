@@ -788,77 +788,9 @@ unsigned SEGGER_RTT_Read(unsigned BufferIndex, void* pBuffer, unsigned BufferSiz
 *    (3) Do not use SEGGER_RTT_WriteWithOverwriteNoLock if a J-Link
 *        connection reads RTT data.
 */
+__attribute__((used, noinline))
 void SEGGER_RTT_WriteWithOverwriteNoLock(unsigned BufferIndex, const void* pBuffer, unsigned NumBytes) {
-  const char*           pData;
-  SEGGER_RTT_BUFFER_UP* pRing;
-  unsigned              Avail;
-  volatile char*        pDst;
-  //
-  // Get "to-host" ring buffer and copy some elements into local variables.
-  //
-  pData = (const char *)pBuffer;
-  pRing = (SEGGER_RTT_BUFFER_UP*)((uintptr_t)&_SEGGER_RTT.aUp[BufferIndex] + SEGGER_RTT_UNCACHED_OFF);  // Access uncached to make sure we see changes made by the J-Link side and all of our changes go into HW directly
-  //
-  // Check if we will overwrite data and need to adjust the RdOff.
-  //
-  if (pRing->WrOff == pRing->RdOff) {
-    Avail = pRing->SizeOfBuffer - 1u;
-  } else if ( pRing->WrOff < pRing->RdOff) {
-    Avail = pRing->RdOff - pRing->WrOff - 1u;
-  } else {
-    Avail = pRing->RdOff - pRing->WrOff - 1u + pRing->SizeOfBuffer;
-  }
-  if (NumBytes > Avail) {
-    pRing->RdOff += (NumBytes - Avail);
-    while (pRing->RdOff >= pRing->SizeOfBuffer) {
-      pRing->RdOff -= pRing->SizeOfBuffer;
-    }
-  }
-  //
-  // Write all data, no need to check the RdOff, but possibly handle multiple wrap-arounds
-  //
-  Avail = pRing->SizeOfBuffer - pRing->WrOff;
-  do {
-    if (Avail > NumBytes) {
-      //
-      // Last round
-      //
-      pDst = (pRing->pBuffer + pRing->WrOff) + SEGGER_RTT_UNCACHED_OFF;
-#if SEGGER_RTT_MEMCPY_USE_BYTELOOP
-      Avail = NumBytes;
-      while (NumBytes--) {
-        *pDst++ = *pData++;
-      };
-      RTT__DMB();                     // Force data write to be complete before writing the <WrOff>, in case CPU is allowed to change the order of memory accesses
-      pRing->WrOff += Avail;
-#else
-      SEGGER_RTT_MEMCPY((void*)pDst, pData, NumBytes);
-      RTT__DMB();                     // Force data write to be complete before writing the <WrOff>, in case CPU is allowed to change the order of memory accesses
-      pRing->WrOff += NumBytes;
-#endif
-      break;
-    } else {
-      //
-      //  Wrap-around necessary, write until wrap-around and reset WrOff
-      //
-      pDst = (pRing->pBuffer + pRing->WrOff) + SEGGER_RTT_UNCACHED_OFF;
-#if SEGGER_RTT_MEMCPY_USE_BYTELOOP
-      NumBytes -= Avail;
-      while (Avail--) {
-        *pDst++ = *pData++;
-      };
-      RTT__DMB();                     // Force data write to be complete before writing the <WrOff>, in case CPU is allowed to change the order of memory accesses
-      pRing->WrOff = 0;
-#else
-      SEGGER_RTT_MEMCPY((void*)pDst, pData, Avail);
-      pData += Avail;
-      RTT__DMB();                     // Force data write to be complete before writing the <WrOff>, in case CPU is allowed to change the order of memory accesses
-      pRing->WrOff = 0;
-      NumBytes -= Avail;
-#endif
-      Avail = (pRing->SizeOfBuffer - 1);
-    }
-  } while (NumBytes);
+  SEGGER_RTT_WriteNoLock(BufferIndex, pBuffer, NumBytes);
 }
 
 /*********************************************************************

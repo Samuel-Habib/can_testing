@@ -3,10 +3,15 @@
 # Exit on error
 set -e
 
-# Parse arguments to decide mode: normal (auto-continue), step (halted), or no-gdb
+# Parse arguments to decide mode: normal (auto-continue), step (halted), or no-gdb, and macOS flag
 MODE="normal"
+MACOS=false
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --macos|-m|macos)
+            MACOS=true
+            shift
+            ;;
         --step|-s|step)
             MODE="step"
             shift
@@ -20,28 +25,36 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --help|-h|help)
-            echo "Usage: $0 [--normal | --step | --no-gdb]"
+            echo "Usage: $0 [--normal | --step | --no-gdb] [--macos]"
             echo "  --normal, -r, normal : Run normally (GDB auto-continues) [Default]"
             echo "  --step,   -s, step   : Step through (GDB halts at startup)"
             echo "  --no-gdb, -n, no-gdb : Run without debugging/GDB client"
+            echo "  --macos,  -m, macos  : Run in macOS mode (skips CAN/vcan setup and candump)"
             exit 0
             ;;
         *)
             echo "Unknown option: $1"
-            echo "Usage: $0 [--normal | --step | --no-gdb]"
+            echo "Usage: $0 [--normal | --step | --no-gdb] [--macos]"
             exit 1
             ;;
     esac
 done
 
 echo "Running in mode: $MODE"
+if [ "$MACOS" = true ]; then
+    echo "macOS mode: Enabled (CAN setup skipped)"
+fi
 
 # 1. Setup virtual CAN if not already present
-if ! ip link show vcan0 >/dev/null 2>&1; then
-    echo "vcan0 not found. Setting up virtual CAN interface (may require sudo)..."
-    sudo modprobe vcan
-    sudo ip link add dev vcan0 type vcan
-    sudo ip link set up vcan0
+if [ "$MACOS" = false ]; then
+    if ! ip link show vcan0 >/dev/null 2>&1; then
+        echo "vcan0 not found. Setting up virtual CAN interface (may require sudo)..."
+        sudo modprobe vcan
+        sudo ip link add dev vcan0 type vcan
+        sudo ip link set up vcan0
+    fi
+else
+    echo "Skipping CAN setup for macOS..."
 fi
 
 # 2. Cleanup old PTY symbolic link if it exists
@@ -82,8 +95,12 @@ if [ -n "$TMUX" ]; then
     
     # Split right column vertically (creates bottom-right pane)
     tmux split-window -v
-    # In the bottom-right pane, run candump
-    tmux send-keys "candump vcan0" C-m
+    # In the bottom-right pane, run candump if not on macOS
+    if [ "$MACOS" = false ]; then
+        tmux send-keys "candump vcan0" C-m
+    else
+        tmux send-keys "echo 'macOS mode: CAN setup and candump skipped'" C-m
+    fi
     
     # Return focus to the original left column
     tmux select-pane -L
@@ -126,7 +143,11 @@ else
     
     # Split right column vertically (creates bottom-right pane)
     tmux split-window -v -t "$SESSION_NAME:VHIL"
-    tmux send-keys -t "$SESSION_NAME:VHIL" "candump vcan0" C-m
+    if [ "$MACOS" = false ]; then
+        tmux send-keys -t "$SESSION_NAME:VHIL" "candump vcan0" C-m
+    else
+        tmux send-keys -t "$SESSION_NAME:VHIL" "echo 'macOS mode: CAN setup and candump skipped'" C-m
+    fi
     
     # Move focus left back to the left column
     tmux select-pane -L -t "$SESSION_NAME:VHIL"

@@ -1,5 +1,53 @@
 #include "logging.h"
+#include "main.h"
 #include <string.h>
+
+const osThreadAttr_t logging_attributes = {
+    .name = "logging",
+    .stack_size = 128 * 4,
+    .priority = (osPriority_t)osPriorityNormal,
+};
+
+/* USER CODE BEGIN Header_StartTask02 */
+/**
+ * @brief Function implementing the logging thread.
+ * @param argument: Not used
+ * @retval None
+ */
+/* USER CODE END Header_StartTask02 */
+void Logging_Task(void *argument) {
+  /* USER CODE BEGIN StartTask02 */
+  // gatekeeper task
+  // t2222
+
+  char noMessages[19] = "No New Messages \r \n";
+  char data[128] = {0};
+  xQueueReset(xLogQueue);
+  for (;;) {
+
+    xQueueReceive(xLogQueue, &data, pdMS_TO_TICKS(2000));
+
+    if (!uart_buffer_full && uxQueueMessagesWaiting(xLogQueue) > 0) {
+      taskENTER_CRITICAL();
+      buffer_total += MAX_MESSAGE_LEN;
+      taskEXIT_CRITICAL();
+      if (log_module(data) == -1) {
+        osDelay(300);
+      }
+    }
+
+    // snprintf(howMany, sizeof(howMany),
+    //          "there are %lu items in the queue and %d bytes in the buffer,
+    //          and " "buffer_total: %d \r \n",
+    //          uxQueueMessagesWaiting(xLogQueue), sizeof(uart_buffer),
+    //          buffer_total);
+    //    HAL_UART_Transmit(&huart1, (uint8_t *)howMany, sizeof(howMany), 1000);
+    HAL_UART_Transmit(&huart1, uart_buffer, sizeof(uart_buffer), 1000);
+
+    osDelay(1);
+  }
+  /* USER CODE END StartTask02 */
+}
 
 signed int log_module(char data[]) {
 

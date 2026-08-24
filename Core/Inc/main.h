@@ -76,6 +76,11 @@ extern uint32_t small_overcurrent_sanples_count;
 extern osThreadId_t batteryHandle;
 extern QueueHandle_t xLogQueue;
 extern UART_HandleTypeDef huart1;
+extern IWDG_HandleTypeDef hiwdg1;
+
+extern FDCAN_HandleTypeDef hfdcan1;
+
+extern inline uint32_t square(int32_t a) { return a * a; }
 
 /* USER CODE END EC */
 

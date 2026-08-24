@@ -22,7 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "SEGGER_SYSVIEW_FreeRTOS.h"
+#include "battery.h"
 #include "can.h"
 #include "cmsis_os2.h"
 #include "logging.h"
@@ -37,6 +37,7 @@
 #include "stm32h7xx_hal_uart.h"
 #include "stm32h7xx_it.h"
 #include "task.h"
+#include "watchdog.h"
 #include <limits.h>
 #include <math.h>
 #include <stdio.h>
@@ -80,41 +81,6 @@ const osThreadAttr_t defaultTask_attributes = {
     .stack_size = 128 * 4,
     .priority = (osPriority_t)osPriorityNormal,
 };
-/* Definitions for logging */
-osThreadId_t loggingHandle;
-const osThreadAttr_t logging_attributes = {
-    .name = "logging",
-    .stack_size = 128 * 4,
-    .priority = (osPriority_t)osPriorityLow,
-};
-/* Definitions for battery */
-osThreadId_t batteryHandle;
-const osThreadAttr_t battery_attributes = {
-    .name = "battery",
-    .stack_size = 128 * 4,
-    .priority = (osPriority_t)osPriorityRealtime,
-};
-/* Definitions for wifi */
-osThreadId_t wifiHandle;
-const osThreadAttr_t wifi_attributes = {
-    .name = "wifi",
-    .stack_size = 128 * 4,
-    .priority = (osPriority_t)osPriorityBelowNormal,
-};
-/* Definitions for watchdog */
-osThreadId_t watchdogHandle;
-const osThreadAttr_t watchdog_attributes = {
-    .name = "watchdog",
-    .stack_size = 128 * 4,
-    .priority = (osPriority_t)osPriorityLow,
-};
-/* Definitions for can_handler */
-osThreadId_t can_handlerHandle;
-const osThreadAttr_t can_handler_attributes = {
-    .name = "can_handler",
-    .stack_size = 128 * 4,
-    .priority = (osPriority_t)osPriorityLow,
-};
 /* USER CODE BEGIN PV */
 
 char howMany[128];
@@ -147,11 +113,6 @@ static void MX_IWDG1_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_TIM2_Init(void);
 void StartDefaultTask(void *argument);
-void StartTask02(void *argument);
-void StartTask03(void *argument);
-void StartTask04(void *argument);
-void StartTask05(void *argument);
-void StartTask06(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -160,7 +121,7 @@ void StartTask06(void *argument);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-static inline uint32_t square(int32_t a) { return a * a; }
+extern inline uint32_t square(int32_t a) { return a * a; }
 
 /* USER CODE END 0 */
 
@@ -169,6 +130,7 @@ static inline uint32_t square(int32_t a) { return a * a; }
  * @retval int
  */
 int main(void) {
+
   /* USER CODE BEGIN 1 */
   long ispr = __get_IPSR();
   snprintf(buf, sizeof(buf), "(IPSR=%lu)\r\n", ispr);
@@ -201,8 +163,10 @@ int main(void) {
   MX_ADC1_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
+  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+  DWT->LAR = 0xC5ACCE55;
+  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
   SEGGER_SYSVIEW_Conf();
-  SEGGER_SYSVIEW_Start();
 
   const FDCAN_FilterTypeDef Can_ConfigFilter = {
       .IdType = FDCAN_STANDARD_ID,
@@ -231,7 +195,9 @@ int main(void) {
   };
   // override watchdog threshold
 
+  hdma_usart1_rx.Instance = DMA1_Stream0;
   hdma_usart1_rx.Init = hdma_init;
+  hdma_adc1.Instance = DMA1_Stream1;
   hdma_adc1.Init = hdma_init;
 
   DMA1_Stream1->PAR =
@@ -278,21 +244,6 @@ int main(void) {
   defaultTaskHandle =
       osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
-  /* creation of logging */
-  loggingHandle = osThreadNew(StartTask02, NULL, &logging_attributes);
-
-  /* creation of battery */
-  batteryHandle = osThreadNew(StartTask03, NULL, &battery_attributes);
-
-  /* creation of wifi */
-  wifiHandle = osThreadNew(StartTask04, NULL, &wifi_attributes);
-
-  /* creation of watchdog */
-  watchdogHandle = osThreadNew(StartTask05, NULL, &watchdog_attributes);
-
-  /* creation of can_handler */
-  can_handlerHandle = osThreadNew(StartTask06, NULL, &can_handler_attributes);
-
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -302,12 +253,7 @@ int main(void) {
   /* USER CODE END RTOS_EVENTS */
 
   /* Start scheduler */
-  // this isn't in cmiss?
-  /* SysTick->CTRL = 0; */
-  /* SysTick->VAL = 0; */
-  /* SCB->ICSR |= SCB_ICSR_PENDSTCLR_Msk; */
-  /* __HAL_DBGMCU_FREEZE_TIM1(); */
-  status = osKernelStart();
+  osKernelStart();
 
   /* We should never get here as control is now taken by the scheduler */
 
@@ -687,208 +633,13 @@ static void MX_GPIO_Init(void) {
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument) {
   /* USER CODE BEGIN 5 */
-
-  static const uint8_t tx_data_bufer[] = "x\r\n";
-  static uint8_t rx_data_bufer[8];
-  // 11111
   /* Infinite loop */
-  for (;;) {
-    //  HAL_Delay(200);
-    //    static uint8_t h[16] = "FIRST TASK \r \n";
-    //   HAL_UART_Transmit(&huart1, h, sizeof(h), 1000);
+  osThreadNew(Battery_Task, NULL, &battery_attributes);
+  osThreadNew(Logging_Task, NULL, &logging_attributes);
+  osThreadNew(Watchdog_Task, NULL, &watchdog_attributes);
+  //  osThreadNew(Wifi_Task, NULL, &wifi_attributes);
 
-    // [ ] Set the mpu
-    // [ ] uart
-    // [ ] can
-    osDelay(100000);
-
-    can_poll_rx(&hfdcan1, rx_data_bufer);
-    can_tx(&hfdcan1, tx_data_bufer);
-
-    osDelay(200);
-    HAL_UART_Transmit(&huart1, rx_data_bufer, sizeof(rx_data_bufer), 1000);
-    osDelay(200);
-  }
   /* USER CODE END 5 */
-}
-
-/* USER CODE BEGIN Header_StartTask02 */
-/**
- * @brief Function implementing the logging thread.
- * @param argument: Not used
- * @retval None
- */
-/* USER CODE END Header_StartTask02 */
-void StartTask02(void *argument) {
-  /* USER CODE BEGIN StartTask02 */
-  // gatekeeper task
-  // t2222
-
-  char noMessages[19] = "No New Messages \r \n";
-  char debugBuf[128];
-  char data[128] = {0};
-  xQueueReset(xLogQueue);
-  for (;;) {
-
-    xQueueReceive(xLogQueue, &data, pdMS_TO_TICKS(2000));
-
-    if (!uart_buffer_full && uxQueueMessagesWaiting(xLogQueue) > 0) {
-      taskENTER_CRITICAL();
-      buffer_total += MAX_MESSAGE_LEN;
-      taskEXIT_CRITICAL();
-      if (log_module(data) == -1) {
-        osDelay(300);
-      }
-    }
-
-    snprintf(howMany, sizeof(howMany),
-             "there are %lu items in the queue and %d bytes in the buffer, and "
-             "buffer_total: %d \r \n",
-             uxQueueMessagesWaiting(xLogQueue), sizeof(uart_buffer),
-             buffer_total);
-    HAL_UART_Transmit(&huart1, (uint8_t *)howMany, sizeof(howMany), 1000);
-    HAL_UART_Transmit(&huart1, uart_buffer, sizeof(uart_buffer), 1000);
-
-    osDelay(1);
-  }
-  /* USER CODE END StartTask02 */
-}
-
-/* USER CODE BEGIN Header_StartTask03 */
-/**
- * @brief Function implementing the battery thread.
- * @param argument: Not used
- * @retval None
- */
-/* USER CODE END Header_StartTask03 */
-void StartTask03(void *argument) {
-  /* USER CODE BEGIN StartTask03 */
-  /* Infinite loop */
-  // 3333
-  uint32_t ulNotifiedValue;
-  uint32_t t_delta = 100000;
-  uint32_t max_time = t_delta * 2;
-  uint32_t time = 0;
-  uint32_t max_sustained = square(80 - 75) * t_delta *
-                           2; /* Σ (75-80)^2 * 2  = 50 A^2 * s // maximum  */
-
-  for (;;) {
-    xTaskNotifyWait(0x00,             /* Don't clear any bits on entry. */
-                    ULONG_MAX,        /* Clear all bits on exit. */
-                    &ulNotifiedValue, /* Receives the notification value. */
-                    portMAX_DELAY);   /* Block indefinitely. */
-
-    // time_delta = 1/100,000 or 10 micro seconds
-    // to keep the math in integers, 1 time delta will be treated as 1
-
-    /* Σ (80 - I_measured)^2 * delta_t */
-
-    // (2 second curve) t_dela to ms to s
-    if (time < max_time) {
-      for (int i = 0; i < ADC_CURRENT_SAMPLE_COUNT; ++i) {
-        // no need to multiply by 100k here since we only need one time delta
-        // and one time delta is 1
-        riemann_sum_total += square(current_sensor_readings[i] - 75);
-        if (riemann_sum_total > max_sustained) {
-          HAL_GPIO_WritePin(HIGH_VOLTAGE_DISCONNECT_GPIO_Port,
-                            HIGH_VOLTAGE_DISCONNECT_Pin, GPIO_PIN_SET);
-        }
-      }
-      time += ADC_CURRENT_SAMPLE_COUNT;
-    } else {
-      time = 0;
-      riemann_sum_total = 0;
-    }
-    // restart watchdog and block for more samples
-    ADC1->IER &= ~(1 << 8);
-    // next todo: implment state so this can survive for two seconds
-  }
-  /* USER CODE END StartTask03 */
-}
-
-/* USER CODE BEGIN Header_StartTask04 */
-/**
- * @brief Function implementing the wifi thread.
- * @param argument: Not used
- * @retval None
- */
-/* USER CODE END Header_StartTask04 */
-void StartTask04(void *argument) {
-  /* USER CODE BEGIN StartTask04 */
-  /* Infinite loop */
-  // wifi11111
-
-  xQueueReset(xLogQueue);
-  for (;;) {
-    osDelay(10);
-    uint8_t task4str[60] = "========== task 4 enterd  =========\r \n";
-    HAL_UART_Transmit(&huart1, task4str, sizeof(task4str), 1000);
-    char sampleData[128] = "Sample data \r \n";
-    char str1[128] = "string1 \r \n";
-    char str2[128] = "string2 \r \n";
-    char str3[128] = "string3 \r \n";
-    char str4[128] = "string4 \r \n";
-    char str5[128] = {0};
-
-    /* snprintf(howMany, sizeof(howMany), "there are %lu items in the queue \r
-     * \n", */
-    /*          uxQueueMessagesWaiting(xLogQueue)); */
-    /* HAL_UART_Transmit(&huart1, (uint8_t *)howMany, sizeof(howMany), 1000);
-     */
-    // ^^ this cuases a hard fault... why??
-
-    // if (uxQueueMessagesWaiting(xLogQueue) == 0) {
-    /* xQueueSend(xLogQueue, (void *)&sampleData, portMAX_DELAY); */
-    /* xQueueSend(xLogQueue, (void *)&str1, portMAX_DELAY); */
-    /* xQueueSend(xLogQueue, (void *)&str2, portMAX_DELAY); */
-    /* xQueueSend(xLogQueue, (void *)&str3, portMAX_DELAY); */
-    /* xQueueSend(xLogQueue, (void *)&str4, portMAX_DELAY); */
-    xQueueSend(xLogQueue, (void *)&str5, portMAX_DELAY);
-    //}
-    //    xSemaphoreTake(testSemaphore, (TickType_t)100000);
-    // osDelay(10000);
-    HAL_Delay(1000);
-    // vTaskDelete(NULL);
-  }
-  /* USER CODE END StartTask04 */
-}
-
-/* USER CODE BEGIN Header_StartTask05 */
-/**
- * @brief Function implementing the watchdog thread.
- * @param argument: Not used
- * @retval None
- */
-/* USER CODE END Header_StartTask05 */
-void StartTask05(void *argument) {
-  /* USER CODE BEGIN StartTask05 */
-  /* Infinite loop */
-  for (;;) {
-    HAL_IWDG_Refresh(&hiwdg1);
-    osDelay(100);
-  }
-  /* USER CODE END StartTask05 */
-}
-
-/* USER CODE BEGIN Header_StartTask06 */
-/**
- * @brief Function implementing the can_handler thread.
- * @param argument: Not used
- * @retval None
- */
-/* USER CODE END Header_StartTask06 */
-void StartTask06(void *argument) {
-  /* USER CODE BEGIN StartTask06 */
-  /* Infinite loop */
-  // can6666
-  char *testString = "this is a test of the char uart buffer scheme";
-  xQueueReset(xLogQueue);
-  for (;;) {
-
-    osDelay(100);
-    // xQueueSendToBack(xLogQueue, testString, 0);
-  }
-  /* USER CODE END StartTask06 */
 }
 
 /**
