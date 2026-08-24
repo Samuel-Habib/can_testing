@@ -34,7 +34,7 @@ include @scripts/single-node/segger-rtt.py
 
 macro reset
 """
-    sysbus LoadELF @../../build/ru-tel.elf
+    sysbus LoadELF @../../build/SC_RTOS-telemetry.elf
     cpu VectorTableOffset 0x08000000
     cpu SP 0x20020000
     cpu PerformanceInMips 100
@@ -63,7 +63,7 @@ connector Connect sysbus.fdcan1 canHub
 
 macro reset
 """
-    sysbus LoadELF @../../build/ru-tel.elf
+    sysbus LoadELF @../../build/SC_RTOS-telemetry.elf
     cpu VectorTableOffset 0x08000000
     cpu SP 0x20020000
     cpu PerformanceInMips 100

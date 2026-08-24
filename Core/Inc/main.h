@@ -80,7 +80,7 @@ extern IWDG_HandleTypeDef hiwdg1;
 
 extern FDCAN_HandleTypeDef hfdcan1;
 
-extern inline uint32_t square(int32_t a) { return a * a; }
+static inline uint32_t square(int32_t a) { return a * a; }
 
 /* USER CODE END EC */
 

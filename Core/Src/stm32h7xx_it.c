@@ -194,7 +194,6 @@ void DMA1_Stream0_IRQHandler(void)
   }
 
   /* USER CODE END DMA1_Stream0_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_usart1_rx);
   /* USER CODE BEGIN DMA1_Stream0_IRQn 1 */
 
   /* USER CODE END DMA1_Stream0_IRQn 1 */
@@ -219,7 +218,6 @@ void DMA1_Stream1_IRQHandler(void)
    * which should fire every 1 ms*/
 
   /* USER CODE END DMA1_Stream1_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_adc1);
   /* USER CODE BEGIN DMA1_Stream1_IRQn 1 */
 
   /* USER CODE END DMA1_Stream1_IRQn 1 */
@@ -326,17 +324,5 @@ void TIM1_UP_IRQHandler(void)
 }
 
 /* USER CODE BEGIN 1 */
-
-extern void xPortSysTickHandler(void);
-
-void SysTick_Handler(void) {
-  HAL_IncTick();
-
-  if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED) {
-    xPortSysTickHandler();
-  }
-}
-
-// void HAL_SYSTICK_IRQHandler();
 
 /* USER CODE END 1 */

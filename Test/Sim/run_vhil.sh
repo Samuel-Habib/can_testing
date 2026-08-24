@@ -113,7 +113,7 @@ if [ -n "$TMUX" ]; then
         if [ "$MODE" = "normal" ]; then
             GDB_CMD="$GDB_CMD -ex 'continue'"
         fi
-        GDB_CMD="$GDB_CMD build/ru-tel.elf"
+        GDB_CMD="$GDB_CMD build/SC_RTOS-telemetry.elf"
 
         # Split the left column vertically (creates left-bottom pane)
         tmux split-window -v
@@ -160,7 +160,7 @@ else
         if [ "$MODE" = "normal" ]; then
             GDB_CMD="$GDB_CMD -ex 'continue'"
         fi
-        GDB_CMD="$GDB_CMD build/ru-tel.elf"
+        GDB_CMD="$GDB_CMD build/SC_RTOS-telemetry.elf"
 
         # Split left column vertically (creates left-bottom pane)
         tmux split-window -v -t "$SESSION_NAME:VHIL"
