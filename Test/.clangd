@@ -1,6 +1,8 @@
 CompileFlags:
+  CompilationDatabase: build
   Add:
     - -I/home/sam/SC-RTOS-Telemetry/Test/framework
     - -I/home/sam/SC-RTOS-Telemetry/Test/mocks
     - -I/home/sam/SC-RTOS-Telemetry/App/Inc
     - -I/home/sam/SC-RTOS-Telemetry/Core/Inc
+    - -std=gnu11

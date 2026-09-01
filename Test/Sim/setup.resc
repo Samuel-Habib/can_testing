@@ -4,8 +4,6 @@ logFile $CWD/logs/renode.log
 # ============================ GLOBAL SETUP ============================
 emulation CreateUartPtyTerminal "term" "/tmp/uart" true
 emulation CreateCANHub "canHub"
-# Create TCP Server Terminal on port 19021
-emulation CreateServerSocketTerminal 19021 "rtt" false
 
 # ============================ MACHINE 0 SETUP ============================
 mach create "machine-0"
@@ -13,11 +11,12 @@ machine LoadPlatformDescription @platforms/cpus/stm32h753.repl
 
 # Set context and connect peripherals directly
 mach set "machine-0"
-# sysbus Unregister sysbus.pwr
+sysbus Unregister sysbus.pwr
 sysbus Unregister sysbus.watchdog
 sysbus SilenceRange <0x58004800 0x400>
 sysbus SilenceRange <0x5C001000 0x400>
 sysbus SilenceRange <0x51008100 0x100>
+sysbus Unregister sysbus.fmc
 sysbus SilenceRange <0x52004000 0x1000>
 logLevel 3 sysbus.rcc
 logLevel 3 sysbus.syscfg
@@ -25,20 +24,16 @@ logLevel 3 sysbus.adcM1S2
 logLevel 3 sysbus.dma1
 logLevel 3 sysbus.timer2
 logLevel 3 sysbus.fdcan1
-machine PyDevFromFile @pwr_mock.py 0x58024800 0x400 false "pwr"
+machine PyDevFromFile @Test/Sim/pwr_mock.py 0x58024800 0x400 false "pwr"
 connector Connect sysbus.usart1 term
 connector Connect sysbus.fdcan1 canHub
-machine CreateVirtualConsole "segger_rtt"
-connector Connect sysbus.segger_rtt rtt
-include @scripts/single-node/segger-rtt.py
 
 macro reset
 """
-    sysbus LoadELF @../../build/SC_RTOS-telemetry.elf
+    sysbus LoadELF @build/SC_RTOS-telemetry.elf
     cpu VectorTableOffset 0x08000000
     cpu SP 0x20020000
     cpu PerformanceInMips 100
-    setup_segger_rtt segger_rtt false true true false false
 """
 
 # ============================ MACHINE 1 SETUP ============================
@@ -46,11 +41,12 @@ mach create "machine-1"
 machine LoadPlatformDescription @platforms/cpus/stm32h753.repl
 
 mach set "machine-1"
-# sysbus Unregister sysbus.pwr
+sysbus Unregister sysbus.pwr
 sysbus Unregister sysbus.watchdog
 sysbus SilenceRange <0x58004800 0x400>
 sysbus SilenceRange <0x5C001000 0x400>
 sysbus SilenceRange <0x51008100 0x100>
+sysbus Unregister sysbus.fmc
 sysbus SilenceRange <0x52004000 0x1000>
 logLevel 3 sysbus.rcc
 logLevel 3 sysbus.syscfg
@@ -58,12 +54,12 @@ logLevel 3 sysbus.adcM1S2
 logLevel 3 sysbus.dma1
 logLevel 3 sysbus.timer2
 logLevel 3 sysbus.fdcan1
-machine PyDevFromFile @pwr_mock.py 0x58024800 0x400 false "pwr"
+machine PyDevFromFile @Test/Sim/pwr_mock.py 0x58024800 0x400 false "pwr"
 connector Connect sysbus.fdcan1 canHub
 
 macro reset
 """
-    sysbus LoadELF @../../build/SC_RTOS-telemetry.elf
+    sysbus LoadELF @build/SC_RTOS-telemetry.elf
     cpu VectorTableOffset 0x08000000
     cpu SP 0x20020000
     cpu PerformanceInMips 100
