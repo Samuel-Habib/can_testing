@@ -29,7 +29,7 @@
 #include "message_buffer.h"
 #include "portmacro.h"
 #include "projdefs.h"
-#include "stm32h753xx.h"
+// #include "stm32h753xx.h"
 #include "stm32h7xx_hal.h"
 #include "stm32h7xx_hal_dma.h"
 #include "stm32h7xx_hal_fdcan.h"

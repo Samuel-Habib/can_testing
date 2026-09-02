@@ -14,8 +14,8 @@ bool run_battery_task(volatile unsigned int *curr_sensor_readings) {
   uint32_t t_delta = 100000;
   uint32_t max_time = t_delta * 2;
   uint32_t time = 0;
-  uint32_t max_sustained = square(80 - 75) * t_delta *
-                           2; /* Σ (75-80)^2 * 2  = 50 A^2 * s // maximum  */
+  uint32_t max_sustained =
+      square(80) * t_delta * 2; /* Σ (75-80)^2 * 2  = 50 A^2 * s // maximum  */
   // char str[128] = "First Message \r \n \t";
   //
   // xQueueSendToBack(xLogQueue, (void *)str, pdMS_TO_TICKS(1000));
@@ -30,7 +30,7 @@ bool run_battery_task(volatile unsigned int *curr_sensor_readings) {
     for (int i = 0; i < ADC_CURRENT_SAMPLE_COUNT; ++i) {
       // no need to multiply by 100k here since we only need one time delta
       // and one time delta is 1
-      riemann_sum_total += square(curr_sensor_readings[i] - 75);
+      riemann_sum_total += square(curr_sensor_readings[i]);
       if (riemann_sum_total > max_sustained) {
         return true;
       }
@@ -40,9 +40,12 @@ bool run_battery_task(volatile unsigned int *curr_sensor_readings) {
     time = 0;
     riemann_sum_total = 0;
   }
-  // restart watchdog and block for more samples
-  //  ADC1->IER &= ~(1 << 8);
-  // next todo: implment state so this can survive for two seconds
+  // note we're not actually stopping the watchdog to do this calculation
+  // this is a lengthy calculation and a catasoprhic event can happen while it's
+  // being calculated
+
+  //
+  //      ADC1->IER &= ~(1 << 8); is simplisitc but it won't work
   return false;
 }
 
@@ -59,7 +62,8 @@ void Battery_Task(void *argument) {
                         HIGH_VOLTAGE_DISCONNECT_Pin, GPIO_PIN_SET);
     } else {
 
-      ADC1->IER &= ~(1 << 8);
+      ADC1->IER &= ~(1 << 8); // note this is watchdog 2 the over 100 watchdog
+                              // not the over 300 watchdog
     }
   }
 }
