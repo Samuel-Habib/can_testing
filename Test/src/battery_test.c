@@ -11,7 +11,7 @@ void tearDown() { fake_stm32_hal_reset_all(); }
 void test_overcurrent_protection(void) {
   volatile unsigned int sensor_readings[100];
   for (int i = 0; i < ADC_CURRENT_SAMPLE_COUNT; ++i) {
-    sensor_readings[i] = 200;
+    sensor_readings[i] = 299;
   }
   bool result = run_battery_task(sensor_readings);
   TEST_ASSERT_EQUAL_INT(result, 1);

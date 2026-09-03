@@ -66,7 +66,7 @@ endfunction()
     # )
 
 # Battery test target
-add_unit_test(test_battery
+add_unit_test(battery_test
     ${CMAKE_CURRENT_SOURCE_DIR}/src/battery_test.c
     ${APP_SRC_DIR}/battery.c
 )

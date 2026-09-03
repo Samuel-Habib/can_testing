@@ -72,6 +72,7 @@ extern bool uart_buffer_full;
 
 extern uint32_t current_sample;
 extern uint32_t small_overcurrent_sanples_count;
+bool battery_task_awake = false;
 
 extern osThreadId_t batteryHandle;
 extern QueueHandle_t xLogQueue;
