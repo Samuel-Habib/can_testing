@@ -9,6 +9,7 @@ const osThreadAttr_t battery_attributes = {
     .priority = (osPriority_t)osPriorityISR,
 };
 
+bool battery_task_awake = false;
 static uint32_t time = 0;
 bool run_battery_task(volatile unsigned int *curr_sensor_readings) {
 
