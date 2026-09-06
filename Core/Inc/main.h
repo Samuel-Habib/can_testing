@@ -57,10 +57,10 @@ extern "C" {
 #define ADC_CURRENT_SAMPLE_COUNT 100
 #define SHORT_CURRENT_SAMPLE_THRESHOLD 3
 #define SHORT_CIRCUIT_THRESHOLD CURRENT_RATING * 3
-#define t                                                                      \
+// #define t                                                                      \
   (160000000 / (1599 + 1)) // 1/ (main clock / ARR+1) or 1/trigger_frequency
 
-extern uint32_t riemann_sum_total;
+extern int32_t riemann_sum_total;
 extern volatile unsigned int current_sensor_readings[ADC_CURRENT_SAMPLE_COUNT];
 extern volatile uint32_t overcurrent_samples_count;
 

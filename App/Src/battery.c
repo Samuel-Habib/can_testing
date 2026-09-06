@@ -1,7 +1,4 @@
 #include "battery.h"
-#include "main.h"
-#include "projdefs.h"
-#include "stm32h7xx_hal_gpio.h"
 
 const osThreadAttr_t battery_attributes = {
     .name = "battery",
@@ -11,33 +8,44 @@ const osThreadAttr_t battery_attributes = {
 
 bool battery_task_awake = false;
 static uint32_t time = 0;
+
+void reset_battery_current_test(void) {
+  time = 0;
+  battery_task_awake = false;
+  riemann_sum_total = 0;
+}
+
+uint32_t max_time = 1000 * 2;
+
+int32_t max_sustained = (80 - 75) * (80 - 75) * 2000;
+/* Σ (75-80)^2 * 2  = 50 A^2 * s // maximum */
+
+void battery_test_debug(void) {
+  printf("\n riemann_sum_total: %d \r \n", riemann_sum_total);
+  printf("\n max_sustained: %d \r \n", max_sustained);
+}
+
 bool run_battery_task(volatile unsigned int *curr_sensor_readings) {
 
-  uint32_t t_delta = 100000;
-  uint32_t max_time = t_delta * 2;
+  // t_delta = 1ms or 1000 us
   if (battery_task_awake == false)
     time = 0;
   battery_task_awake = true;
-  uint32_t max_sustained = square(80 - 75) * t_delta *
-                           2; /* Σ (75-80)^2 * 2  = 50 A^2 * s // maximum  */
-  // char str[128] = "First Message \r \n \t";
-  //
-  // xQueueSendToBack(xLogQueue, (void *)str, pdMS_TO_TICKS(1000));
-
-  // time_delta = 1/100,000 or 10 micro seconds
-  // to keep the math in integers, 1 time delta will be treated as 1
-
-  /* Σ (80 - I_measured)^2 * delta_t */
-
-  // (2 second curve) t_dela to ms to s
+  signed int sign = 1;
   if (time < max_time) {
+    // 300-75 = 225
+    // 225^2 *100 = 5062500 which is within the bounds of signed 32 bit int
     for (int i = 0; i < ADC_CURRENT_SAMPLE_COUNT; ++i) {
-      // no need to multiply by 100k here since we only need one time delta
-      // and one time delta is 1
-      riemann_sum_total += square(curr_sensor_readings[i] - 75);
+      if (curr_sensor_readings[i] < 75)
+        sign = -1;
+      else
+        sign = 1;
+      riemann_sum_total += square(curr_sensor_readings[i] - 75) * sign;
       if (riemann_sum_total > max_sustained) {
+        battery_test_debug();
         return true;
-      }
+      } else if (riemann_sum_total < 0)
+        riemann_sum_total = 0;
     }
     time += ADC_CURRENT_SAMPLE_COUNT;
   } else {
@@ -61,9 +69,8 @@ void Battery_Task(void *argument) {
       HAL_GPIO_WritePin(HIGH_VOLTAGE_DISCONNECT_GPIO_Port,
                         HIGH_VOLTAGE_DISCONNECT_Pin, GPIO_PIN_SET);
     } else {
-
-      ADC1->IER &= ~(1 << 8); // note this is watchdog 2 the over 100 watchdog
-                              // not the over 300 watchdog
+      if (!battery_task_awake)
+        ADC1->IER |= (1 << 8); // adc wdg 2 enable
     }
   }
 }

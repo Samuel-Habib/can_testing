@@ -87,7 +87,7 @@ osThreadId_t batteryHandle;
 char howMany[128];
 osStatus_t status;
 char buf[128];
-uint32_t riemann_sum_total = 0;
+int32_t riemann_sum_total = 0;
 volatile unsigned int current_sensor_readings[ADC_CURRENT_SAMPLE_COUNT];
 volatile uint32_t overcurrent_samples_count = 0;
 
