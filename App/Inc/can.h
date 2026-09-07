@@ -13,4 +13,8 @@ int can_poll_rx(FDCAN_HandleTypeDef *hfdcan1, uint8_t *DataBuffer);
 // uint8_t *can_poll(FDCAN_HandleTypeDef *hfdcan1, uint8_t DataBuffer, uint8_t
 // *extra); int can_int(FDCAN_HandleTypeDef hfdcan1);
 
+typedef struct {
+  uint8_t a;
+} CAN_Payload;
+
 int heartbeat();

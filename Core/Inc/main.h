@@ -50,25 +50,16 @@ extern "C" {
 
 #define HIGH_VOLTAGE_DISCONNECT_Pin GPIO_PIN_6
 #define HIGH_VOLTAGE_DISCONNECT_GPIO_Port GPIOG
-#define mbaCONTROL_MESSAGE_BUFFER_SIZE (24)
-#define UART_BUFFER_SIZE (512)
+// #define mbaCONTROL_MESSAGE_BUFFER_SIZE (24)
 #define MAX_MESSAGE_LEN (128)
-#define CURRENT_RATING 100
-#define ADC_CURRENT_SAMPLE_COUNT 100
-#define SHORT_CURRENT_SAMPLE_THRESHOLD 3
-#define SHORT_CIRCUIT_THRESHOLD CURRENT_RATING * 3
-// #define t                                                                      \
-  (160000000 / (1599 + 1)) // 1/ (main clock / ARR+1) or 1/trigger_frequency
+#define CURRENT_RATING (100)
+#define ADC_CURRENT_SAMPLE_COUNT (100)
+#define SHORT_CURRENT_SAMPLE_THRESHOLD (3)
+#define SHORT_CIRCUIT_THRESHOLD (CURRENT_RATING * 3)
 
 extern int32_t riemann_sum_total;
 extern volatile unsigned int current_sensor_readings[ADC_CURRENT_SAMPLE_COUNT];
 extern volatile uint32_t overcurrent_samples_count;
-
-extern unsigned char uart_buffer[UART_BUFFER_SIZE];
-extern uint16_t buffer_total;
-extern uint16_t head;
-extern uint16_t tail;
-extern bool uart_buffer_full;
 
 extern uint32_t current_sample;
 extern uint32_t small_overcurrent_sanples_count;

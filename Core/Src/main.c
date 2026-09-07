@@ -93,11 +93,6 @@ volatile uint32_t overcurrent_samples_count = 0;
 
 QueueHandle_t xLogQueue;
 SemaphoreHandle_t testSemaphore = NULL;
-unsigned char uart_buffer[UART_BUFFER_SIZE];
-uint16_t buffer_total = 0;
-uint16_t head = 0;
-uint16_t tail = 0;
-bool uart_buffer_full = false;
 
 uint32_t current_sample = 0;
 uint32_t small_overcurrent_sanples_count = 0;
