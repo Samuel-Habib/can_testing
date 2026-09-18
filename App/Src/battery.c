@@ -68,6 +68,14 @@ void Battery_Task(void *argument) {
     if (hardware_state.hv_state == hv_RESET) {
       HAL_GPIO_WritePin(HIGH_VOLTAGE_DISCONNECT_GPIO_Port,
                         HIGH_VOLTAGE_DISCONNECT_Pin, GPIO_PIN_RESET);
+      time = 0;
+      riemann_sum_total = 0;
+      battery_task_awake = 0;
+      ADC1->ISR = (1 << 7);  // wdg1
+      ADC1->IER |= (1 << 7); // wdg1
+      ADC1->ISR = (1 << 8);  // wdg2
+      ADC1->IER |= (1 << 8); // wdg2
+      hardware_state.hv_state = hv_CONNECTED;
     }
     if (run_battery_task(current_sensor_readings)) {
       HAL_GPIO_WritePin(HIGH_VOLTAGE_DISCONNECT_GPIO_Port,

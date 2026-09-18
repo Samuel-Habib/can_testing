@@ -27,7 +27,7 @@
 /**/
 
 CAN_Paramter CAN_Params_File[4096];
-extern Hardware_state hardware_state = {.hv_state = hv_STARTUP};
+Hardware_state hardware_state = {.hv_state = hv_STARTUP};
 // this is PER board
 uint8_t can_buffer[8];
 uint32_t hb_mesg_count; // global variable

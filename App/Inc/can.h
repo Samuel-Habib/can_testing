@@ -42,12 +42,6 @@ typedef enum {
   Heartbeat
 } Message_Type;
 
-typedef enum { hv_STARTUP, hv_CONNECTED, hv_DISCONNECTED, hv_RESET } hv_state_t;
-
-typedef struct {
-  hv_state_t hv_state;
-} Hardware_state;
-
 int heartbeat();
 
 extern uint8_t can_buffer[8];
