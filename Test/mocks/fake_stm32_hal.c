@@ -86,11 +86,11 @@ int32_t riemann_sum_total = 0;
 volatile unsigned int current_sensor_readings[ADC_CURRENT_SAMPLE_COUNT] = {0};
 volatile uint32_t overcurrent_samples_count = 0;
 
-unsigned char uart_buffer[UART_BUFFER_SIZE] = {0};
-uint16_t buffer_total = 0;
-uint16_t head = 0;
-uint16_t tail = 0;
-bool uart_buffer_full = false;
+/* unsigned char uart_buffer[UART_BUFFER_SIZE] = {0}; */
+/* uint16_t buffer_total = 0; */
+/* uint16_t head = 0; */
+/* uint16_t tail = 0; */
+/* bool uart_buffer_full = false; */
 
 uint32_t current_sample = 0;
 uint32_t small_overcurrent_sanples_count = 0;
@@ -150,11 +150,11 @@ void fake_stm32_hal_reset_all(void) {
   riemann_sum_total = 0;
   memset((void *)current_sensor_readings, 0, sizeof(current_sensor_readings));
   overcurrent_samples_count = 0;
-  memset(uart_buffer, 0, sizeof(uart_buffer));
-  buffer_total = 0;
-  head = 0;
-  tail = 0;
-  uart_buffer_full = false;
+  /* memset(uart_buffer, 0, sizeof(uart_buffer)); */
+  /* buffer_total = 0; */
+  /* head = 0; */
+  /* tail = 0; */
+  /* uart_buffer_full = false; */
   current_sample = 0;
   small_overcurrent_sanples_count = 0;
   batteryHandle = NULL;

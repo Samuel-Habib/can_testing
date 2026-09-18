@@ -36,6 +36,7 @@ extern "C" {
 #include "cmsis_os2.h"
 #include "queue.h"
 #include "semphr.h"
+#include "task.h"
 #include <stdbool.h>
 
 /* USER CODE END Includes */
@@ -69,9 +70,17 @@ extern osThreadId_t batteryHandle;
 extern QueueHandle_t xLogQueue;
 extern UART_HandleTypeDef huart1;
 extern IWDG_HandleTypeDef hiwdg1;
-
+extern TaskHandle_t can_handle;
+extern TaskHandle_t battery_handle;
 extern FDCAN_HandleTypeDef hfdcan1;
 
+typedef enum { hv_STARTUP, hv_CONNECTED, hv_DISCONNECTED, hv_RESET } hv_state_t;
+
+typedef struct {
+  hv_state_t hv_state;
+} Hardware_state;
+
+extern Hardware_state hardware_state;
 static inline uint32_t square(int32_t a) { return a * a; }
 
 /* USER CODE END EC */

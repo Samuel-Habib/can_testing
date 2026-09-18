@@ -62,6 +62,10 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+
+TaskHandle_t can_handle;
+TaskHandle_t battery_handle;
+
 ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
 
@@ -641,9 +645,16 @@ static void MX_GPIO_Init(void) {
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument) {
   /* USER CODE BEGIN 5 */
-  osThreadNew(Battery_Task, NULL, &battery_attributes);
+
+  xTaskCreate(Can_Handler_Task, "Can_Handler_Task", 128 * 4, (void *)1,
+              osPriorityNormal, &can_handle);
+
+  xTaskCreate(Battery_Task, "Battery_Task", 128 * 4, (void *)1, osPriorityISR,
+              &battery_handle);
+  //  osThreadNew(Battery_Task, NULL, &battery_attributes);
   osThreadNew(Logging_Task, NULL, &logging_attributes);
   osThreadNew(Watchdog_Task, NULL, &watchdog_attributes);
+  // osThreadNew(Can_Handler_Task, NULL, &can_attributes);
   //  osThreadNew(Wifi_Task, NULL, &wifi_attributes);
 
   static const uint8_t tx_data_bufer[] = "x\r\n";

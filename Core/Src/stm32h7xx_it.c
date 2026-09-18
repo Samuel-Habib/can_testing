@@ -26,7 +26,6 @@
 #include "stm32h7xx_hal.h"
 #include "stm32h7xx_hal_cortex.h"
 #include "stm32h7xx_hal_uart.h"
-#include "task.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -163,24 +162,25 @@ void DMA1_Stream0_IRQHandler(void) {
   /* USER CODE BEGIN DMA1_Stream0_IRQn 0 */
 
   // logging (lower priority)
-  DMA1->LIFCR = DMA_LIFCR_CTCIF0; // ctcif
-  DMA1_Stream0->CR &= 0;          // disable dma
-  tail = (tail + MAX_MESSAGE_LEN) % UART_BUFFER_SIZE;
-  uint32_t x;
-  x = taskENTER_CRITICAL_FROM_ISR();
-  buffer_total -= MAX_MESSAGE_LEN;
-  taskEXIT_CRITICAL_FROM_ISR(x);
 
-  uart_buffer_full = false;
-  if (buffer_total == 0)
-    DMA1_Stream0->CR &= 0; // en = 0;
-  // disable the dma when the ring buffer is empty
-  else {
-    // reload ndtr and move on to the next message
-    DMA1_Stream0->NDTR = MAX_MESSAGE_LEN; // bytes
-    DMA1_Stream0->M0AR = (uint32_t)&(uart_buffer[tail]);
-    DMA1_Stream0->CR |= 1; // en = 1;
-  }
+  /* DMA1->LIFCR = DMA_LIFCR_CTCIF0; // ctcif */
+  /* DMA1_Stream0->CR &= 0;          // disable dma */
+  /* tail = (tail + MAX_MESSAGE_LEN) % UART_BUFFER_SIZE; */
+  /* uint32_t x; */
+  /* x = taskENTER_CRITICAL_FROM_ISR(); */
+  /* buffer_total -= MAX_MESSAGE_LEN; */
+  /* taskEXIT_CRITICAL_FROM_ISR(x); */
+  /**/
+  /* uart_buffer_full = false; */
+  /* if (buffer_total == 0) */
+  /*   DMA1_Stream0->CR &= 0; // en = 0; */
+  /* // disable the dma when the ring buffer is empty */
+  /* else { */
+  /*   // reload ndtr and move on to the next message */
+  /*   DMA1_Stream0->NDTR = MAX_MESSAGE_LEN; // bytes */
+  /*   DMA1_Stream0->M0AR = (uint32_t)&(uart_buffer[tail]); */
+  /*   DMA1_Stream0->CR |= 1; // en = 1; */
+  //}
 
   /* USER CODE END DMA1_Stream0_IRQn 0 */
   /* USER CODE BEGIN DMA1_Stream0_IRQn 1 */
@@ -199,7 +199,7 @@ void DMA1_Stream1_IRQHandler(void) {
   DMA1->LIFCR = DMA_LIFCR_CHTIF1;
 
   BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-  xTaskNotifyFromISR(batteryHandle, 0, 0, &xHigherPriorityTaskWoken);
+  xTaskNotifyFromISR(battery_handle, 0, 0, &xHigherPriorityTaskWoken);
   portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
   /* all this does is notify the task at a regular interval set by timer 2*/
   /* the deffered task should finish executing well below this interrupt
@@ -282,7 +282,7 @@ void ADC_IRQHandler(void) {
         DMA1_Stream1->CR |= DMA_SxCR_HTIE;
         small_overcurrent_sanples_count = 0;
         BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-        xTaskNotifyFromISR(batteryHandle, 0, 0, &xHigherPriorityTaskWoken);
+        vTaskNotifyGiveFromISR(battery_handle, &xHigherPriorityTaskWoken);
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
       }
     }
@@ -293,7 +293,7 @@ void ADC_IRQHandler(void) {
       DMA1_Stream1->CR |= DMA_SxCR_HTIE;
 
       BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-      xTaskNotifyFromISR(batteryHandle, 0, 0, &xHigherPriorityTaskWoken);
+      vTaskNotifyGiveFromISR(battery_handle, &xHigherPriorityTaskWoken);
       portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
     }
   }

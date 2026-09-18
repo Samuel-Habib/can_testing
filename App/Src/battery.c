@@ -65,6 +65,10 @@ void Battery_Task(void *argument) {
                     ULONG_MAX,        /* Clear all bits on exit. */
                     &ulNotifiedValue, /* Receives the notification value. */
                     portMAX_DELAY);   /* Block indefinitely. */
+    if (hardware_state.hv_state == hv_RESET) {
+      HAL_GPIO_WritePin(HIGH_VOLTAGE_DISCONNECT_GPIO_Port,
+                        HIGH_VOLTAGE_DISCONNECT_Pin, GPIO_PIN_RESET);
+    }
     if (run_battery_task(current_sensor_readings)) {
       HAL_GPIO_WritePin(HIGH_VOLTAGE_DISCONNECT_GPIO_Port,
                         HIGH_VOLTAGE_DISCONNECT_Pin, GPIO_PIN_SET);

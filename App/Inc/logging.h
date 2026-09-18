@@ -1,6 +1,7 @@
 #include "main.h"
+#include "string.h"
 
-signed int log_module(char data[]);
+void send_log_message(const char *data);
 int uart_driver(void);
 
 extern const osThreadAttr_t logging_attributes;
